@@ -3,48 +3,31 @@
 .piolibdeps/
 .platformio/
 
-# ESP-IDF specific ignores
+# ESP32 build outputs
 build/
-.cmake/
-cmake-build-*/
-
-# Compiler objects and binaries
-*.o
-*.obj
-*.a
-*.lib
-*.so
-*.dll
-*.exe
+dist/
 *.bin
 *.elf
+*.map
 
 # Dependencies
 lib/
-components/
+.pio/libdeps/
 
-# Logs
+# Logs and temp files
 *.log
-
-# Temporary files
 *.tmp
-*.swp
-*.swo
 
-# IDE specific
+# Environment
+.env
+.env.local
+*.env.*
+
+# Editors
 .vscode/
 .idea/
-*.swp
-*~
 
-# OS specific
+# OS generated files
 .DS_Store
 Thumbs.db
-
-# Configuration backups
-platformio.ini.bak
-config.h.bak
-
-# Test artifacts
-test_result*
 ```

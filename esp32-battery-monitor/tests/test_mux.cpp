@@ -3,9 +3,10 @@
  * @brief Unit tests for multiplexer controller
  */
 
-#include <catch2/catch.hpp>
-#include "types.h"
 #include "config.h"
+#include "types.h"
+#include "thermistor/thermistor_calc.h"
+#include <catch2/catch_all.hpp>
 
 // Mock implementations for testing (no hardware)
 namespace mock {
