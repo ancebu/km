@@ -1,72 +1,50 @@
 ```
-# Dependencies
-node_modules/
-venv/
-.venv/
-__pycache__/
-.mypy_cache/
-.pytest_cache/
-target/
-.gradle/
+# PlatformIO build artifacts
+.piolibdeps/
+.platformio/
 
-# Compiled/Binary files
-*.pyc
-*.class
-*.o
-*.exe
-*.dll
-*.so
-*.a
-*.obj
-*.out
-
-# Build artifacts
-dist/
+# ESP-IDF specific ignores
 build/
+.cmake/
+cmake-build-*/
 
-# Editor/IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-*.tmp
+# Compiler objects and binaries
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dll
+*.exe
+*.bin
+*.elf
 
-# System files
-.DS_Store
-Thumbs.db
-.env
-.env.local
-*.env.*
+# Dependencies
+lib/
+components/
 
 # Logs
 *.log
 
-# Coverage
-coverage/
-htmlcov/
-.coverage
+# Temporary files
+*.tmp
+*.swp
+*.swo
 
-# Compressed files
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
+# IDE specific
+.vscode/
+.idea/
+*.swp
+*~
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Configuration backups
+platformio.ini.bak
+config.h.bak
+
+# Test artifacts
+test_result*
 ```

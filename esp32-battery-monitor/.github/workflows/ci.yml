@@ -1,0 +1,53 @@
+name: CI Build and Test
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.x'
+    
+    - name: Install PlatformIO
+      run: pip install platformio
+    
+    - name: Cache PlatformIO packages
+      uses: actions/cache@v3
+      with:
+        path: ~/.platformio
+        key: ${{ runner.os }}-platformio-${{ hashFiles('**/platformio.ini') }}
+    
+    - name: Build for ESP32-WROOM
+      run: pio run -e esp32dev
+    
+    - name: Build for ESP32-S3
+      run: pio run -e esp32s3
+    
+    - name: Build for ESP32-C3
+      run: pio run -e esp32c3
+    
+    - name: Run native unit tests
+      run: pio test -e native
+
+  docs:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Validate documentation exists
+      run: |
+        test -f README.md
+        test -f docs/setup/QUICKSTART.md
+        test -f docs/hardware/SETUP.md
+        test -f docs/ARCHITECTURE.md
