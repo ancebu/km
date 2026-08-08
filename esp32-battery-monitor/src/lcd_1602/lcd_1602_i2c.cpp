@@ -436,5 +436,5 @@ error_code_t lcd_1602_auto_detect_address(lcd_1602_state_t* state) {
         }
     }
     
-    return ERR_NOT_FOUND;
+    return ERR_COMMUNICATION;
 }
