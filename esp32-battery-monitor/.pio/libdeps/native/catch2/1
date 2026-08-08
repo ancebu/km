@@ -1,0 +1,4 @@
++ bazel_remote_executable=/home/raphael/.bazel_cache_bin/bazel_remote-2.4.0
++ pgrep '[b]azel_remote'
++ echo '✅ Bazel cache-server is running.'
++ exit

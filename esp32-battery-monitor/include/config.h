@@ -10,6 +10,31 @@
 #pragma once
 
 // ============================================================================
+// NATIVE BUILD STUBS
+// When not building for actual ESP32 hardware, GPIO enum values don't
+// exist. Define them as plain integers so config.h compiles for unit tests.
+// This is NOT used at runtime — tests never touch real GPIO.
+// ============================================================================
+#ifndef ARDUINO_ARCH_ESP32
+typedef int gpio_num_t;
+#define GPIO_NUM_4   4
+#define GPIO_NUM_5   5
+#define GPIO_NUM_12  12
+#define GPIO_NUM_18  18
+#define GPIO_NUM_19  19
+#define GPIO_NUM_21  21
+#define GPIO_NUM_22  22
+#define GPIO_NUM_23  23
+#define GPIO_NUM_25  25
+#define GPIO_NUM_26  26
+#define GPIO_NUM_27  27
+#define GPIO_NUM_32  32
+#define GPIO_NUM_33  33
+#define GPIO_NUM_34  34
+#define GPIO_NUM_35  35
+#endif
+
+// ============================================================================
 // LOGGING CONFIGURATION
 // ============================================================================
 #define CONFIG_LOG_LEVEL_DEBUG      1

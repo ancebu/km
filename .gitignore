@@ -1,29 +1,72 @@
+```
 # PlatformIO build artifacts
 .piolibdeps/
 .platformio/
-.pio/
+*.elf
+*.bin
+*.hex
+*.map
+*.partitions.bin
 
 # ESP-IDF specific
 build/
-.clangd/
-idf_component.yml
+cmake-build-*/
+__pioenvs__/
+__libdeps__/
+
+# General build artifacts
+*.o
+*.a
+*.so
+*.dylib
+*.dll
 
 # Dependencies
-lib/
-
-# Logs and temp files
-*.log
-*.tmp
-
-# Environment
+.pip/
+venv/
 .env
 .env.local
 *.env.*
 
-# Editors
+# Logs
+*.log
+
+# Editor/IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
 
-# OS generated files
+# OS
 .DS_Store
 Thumbs.db
+
+# Coverage
+.coverage
+coverage/
+htmlcov/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# Archives
+*.zip
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.gz
+*.rar
+*.7z
+```
