@@ -3,20 +3,27 @@
 .piolibdeps/
 .platformio/
 
-# ESP32 build outputs
+# ESP-IDF specific
 build/
-dist/
+.cmake/
+cmake-build-*/
+
+# Arduino/ESP32 build artifacts
 *.bin
 *.elf
+*.hex
 *.map
 
 # Dependencies
 lib/
-.pio/libdeps/
+dependencies/
 
-# Logs and temp files
+# Logs
 *.log
+
+# Temporary files
 *.tmp
+*.swp
 
 # Environment
 .env
@@ -30,4 +37,22 @@ lib/
 # OS generated files
 .DS_Store
 Thumbs.db
+
+# Coverage reports
+coverage/
+htmlcov/
+*.coverage
+
+# Python artifacts (if any Python scripts exist in project)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Build directories (general)
+dist/
+target/
+.out
 ```

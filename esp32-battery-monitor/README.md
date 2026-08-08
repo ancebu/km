@@ -7,6 +7,7 @@ A maintainable, modular ESP32 firmware for monitoring battery packs using a mult
 - **Muxed Thermistor Matrix**: Scan multiple temperature points across battery cells
 - **Dual Multiplexer Architecture**: Route any sense wire to INA226 VBUS input
 - **Comprehensive Logging**: Capture voltage, current, power, and temperature data
+- **I2C LCD 1602 Display**: Real-time monitoring on 16x2 character display
 - **Zero Official ESP-IDF Overhead**: Uses PlatformIO for easy setup
 - **Modular Design**: Clean separation of concerns for long-term maintainability
 
@@ -103,18 +104,36 @@ esp32-battery-monitor/
 ### Supported Components
 - **MCU**: ESP32-WROOM, ESP32-S3, ESP32-C3
 - **Current/Voltage Sensor**: INA226 (I2C)
+- **Display**: HD44780-based 16x2 LCD with PCF8574 I2C backpack
 - **Multiplexers**: CD74HC4051, CD74HC4052, or similar
 - **Thermistors**: NTC 10kΩ (beta=3950), configurable
 
 ## Configuration
 
-Edit `config/default_config.h` to customize:
+Edit `include/config.h` to customize:
 - GPIO pin assignments
 - I2C bus configuration
 - Multiplexer channel count
 - Thermistor beta values
 - Sampling rates
 - INA226 calibration constants
+- LCD display settings (enable/disable, I2C address)
+
+### LCD Configuration
+
+To enable the I2C LCD 1602 display:
+
+1. Set `CONFIG_LCD_ENABLED` to `1` in `include/config.h`
+2. Connect your LCD module:
+   - VCC → 5V (or 3.3V depending on your module)
+   - GND → GND
+   - SDA → GPIO 21 (or configured I2C SDA pin)
+   - SCL → GPIO 22 (or configured I2C SCL pin)
+3. The driver will auto-detect the I2C address (0x27 or 0x3F)
+
+The display shows:
+- Line 1: Voltage and Current (e.g., "V:12.34V C:1.23A")
+- Line 2: Temperature and Power (e.g., "T:25.0C P:15.2W")
 
 ## Testing Strategy
 
