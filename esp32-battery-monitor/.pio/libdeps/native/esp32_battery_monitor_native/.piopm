@@ -1,0 +1,1 @@
+{"type": "library", "name": "esp32_battery_monitor_native", "version": "0.0.0+20260808065255", "spec": {"owner": null, "id": null, "name": "esp32-battery-monitor-native-lib", "requirements": null, "uri": "file:///workspace/esp32-battery-monitor-native-lib"}}
