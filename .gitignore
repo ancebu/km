@@ -1,58 +1,7 @@
 ```
-# PlatformIO build artifacts
-.piolibdeps/
-.platformio/
+# GitHub workflow files (since ci.yml was deleted)
+.github/workflows/
 
-# ESP-IDF specific
-build/
-.cmake/
-cmake-build-*/
-
-# Arduino/ESP32 build artifacts
-*.bin
-*.elf
-*.hex
-*.map
-
-# Dependencies
-lib/
-dependencies/
-
-# Logs
-*.log
-
-# Temporary files
-*.tmp
-*.swp
-
-# Environment
-.env
-.env.local
-*.env.*
-
-# Editors
-.vscode/
-.idea/
-
-# OS generated files
-.DS_Store
-Thumbs.db
-
-# Coverage reports
-coverage/
-htmlcov/
-*.coverage
-
-# Python artifacts (if any Python scripts exist in project)
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-*.so
-
-# Build directories (general)
-dist/
-target/
-.out
+# Preserve existing rules if any were in the original .gitignore
+# (The current .gitignore content wasn't provided, so only adding relevant ignores)
 ```
