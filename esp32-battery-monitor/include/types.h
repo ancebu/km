@@ -174,6 +174,10 @@ typedef struct {
     bool full;              // true if buffer is full
 } ring_buffer_t;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // Ring buffer operations
 void ring_buffer_init(ring_buffer_t* buffer);
 bool ring_buffer_push(ring_buffer_t* buffer, const battery_pack_state_t* data);
@@ -181,6 +185,10 @@ bool ring_buffer_pop(ring_buffer_t* buffer, battery_pack_state_t* data);
 uint16_t ring_buffer_count(const ring_buffer_t* buffer);
 bool ring_buffer_is_full(const ring_buffer_t* buffer);
 bool ring_buffer_is_empty(const ring_buffer_t* buffer);
+
+#ifdef __cplusplus
+}
+#endif
 
 // ============================================================================
 // CALLBACK TYPES

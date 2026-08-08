@@ -4,10 +4,15 @@
  */
 
 #include "lut_calibration.h"
-#include <Arduino.h>
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+
+// Clock function - can be overridden for testing
+#ifndef LUT_CLOCK_FUNC
+#define LUT_CLOCK_FUNC default_lut_clock_ms
+static uint32_t default_lut_clock_ms(void) { return 0; }
+#endif
 
 // ============================================================================
 // CUBIC SPLINE INTERPOLATION (Natural Spline)
@@ -143,7 +148,7 @@ error_code_t lut_add_point(lut_table_t* lut, const calibration_point_t* point) {
         bin->confidence = fmaxf(bin->confidence, point->confidence_score);
     }
     
-    lut->last_update_ms = millis();
+    lut->last_update_ms = LUT_CLOCK_FUNC();
     
     return ERR_OK;
 }
@@ -362,7 +367,7 @@ error_code_t lut_merge(lut_table_t* dest, const lut_table_t* source) {
         }
     }
     
-    dest->last_update_ms = millis();
+    dest->last_update_ms = LUT_CLOCK_FUNC();
     
     return ERR_OK;
 }
@@ -468,7 +473,7 @@ error_code_t lut_deserialize(lut_table_t* lut, const uint8_t* buffer, size_t buf
     }
     
     lut->initialized = true;
-    lut->last_update_ms = millis();
+    lut->last_update_ms = LUT_CLOCK_FUNC();
     
     return ERR_OK;
 }

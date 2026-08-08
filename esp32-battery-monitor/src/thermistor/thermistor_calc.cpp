@@ -5,9 +5,6 @@
 
 #include "thermistor_calc.h"
 #include <math.h>
-#include <esp_log.h>
-
-static const char* TAG = "THERM_CALC";
 
 // Absolute zero in Kelvin
 #define ABSOLUTE_ZERO_K 273.15f

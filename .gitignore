@@ -1,47 +1,36 @@
 ```
-# PlatformIO build artifacts
+# PlatformIO
+.pio/
+pioenvs/
 .piolibdeps/
-.platformio/
 
-# ESP-IDF specific
-__pioenvs/
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-
-# General build artifacts
-build/
-dist/
+# Build artifacts
+*.elf
 *.bin
 *.hex
-*.elf
 *.map
+*.lst
 
 # Dependencies
 lib/
-components/
+libs/
 
-# Logs
-*.log
-
-# Temporary files
+# Temp files
 *.tmp
 *.bak
 *.swp
 
-# Environment
-.env
-.env.local
-.env.*
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
 
 # IDE
 .vscode/
 .idea/
-*.swp
-*~
 
-# OS
-.DS_Store
-Thumbs.db
+# Original rules preserved
+*.log
 ```
