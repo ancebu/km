@@ -4,9 +4,15 @@
  */
 
 #include "hoge_polynomial.h"
-#include <Arduino.h>
 #include <math.h>
 #include <stdlib.h>
+#include <string.h>
+
+// Clock function - can be overridden for testing
+#ifndef POLYNOMIAL_CLOCK_FUNC
+#define POLYNOMIAL_CLOCK_FUNC default_poly_clock_ms
+static uint32_t default_poly_clock_ms(void) { return 0; }
+#endif
 
 // ============================================================================
 // MATRIX OPERATIONS FOR LEAST SQUARES FIT
@@ -238,7 +244,7 @@ error_code_t hoge_polynomial_fit(poly_fit_state_t* state) {
     }
     
     state->polynomial.valid = true;
-    state->polynomial.last_refit_timestamp = millis();
+    state->polynomial.last_refit_timestamp = POLYNOMIAL_CLOCK_FUNC();
     state->polynomial.samples_used = state->sample_count;
     state->needs_refit = false;
     state->last_refit_sample_count = state->sample_count;

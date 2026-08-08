@@ -1,13 +1,7 @@
 /**
- * @file ring_buffer_native.cpp
- * @brief Native (non-ESP32) implementation of ring buffer operations
- * 
- * This file provides implementations of ring buffer functions for the
- * native test environment, without requiring Arduino/ESP32 headers.
+ * @file ring_buffer.c
+ * @brief Ring buffer implementation for data logging
  */
-
-// Always compile native implementation for native environment
-// The build_src_filter ensures this file is only compiled for native env
 
 #include "types.h"
 #include <string.h>
@@ -16,7 +10,6 @@ void ring_buffer_init(ring_buffer_t* buffer) {
     if (buffer == NULL) {
         return;
     }
-    
     memset(buffer->data, 0, sizeof(buffer->data));
     buffer->head = 0;
     buffer->tail = 0;
@@ -29,12 +22,12 @@ bool ring_buffer_push(ring_buffer_t* buffer, const battery_pack_state_t* data) {
         return false;
     }
     
-    // If buffer is full, overwrite oldest entry (circular behavior)
+    // If buffer is full, overwrite oldest entry (move tail forward)
     if (buffer->full) {
         buffer->tail = (buffer->tail + 1) % CONFIG_RING_BUFFER_SIZE;
     }
     
-    // Copy data to current head position
+    // Copy data to head position
     memcpy(&buffer->data[buffer->head], data, sizeof(battery_pack_state_t));
     
     // Advance head
@@ -44,7 +37,6 @@ bool ring_buffer_push(ring_buffer_t* buffer, const battery_pack_state_t* data) {
     if (buffer->count < CONFIG_RING_BUFFER_SIZE) {
         buffer->count++;
     }
-    
     if (buffer->head == buffer->tail) {
         buffer->full = true;
     }
@@ -57,7 +49,7 @@ bool ring_buffer_pop(ring_buffer_t* buffer, battery_pack_state_t* data) {
         return false;
     }
     
-    // Check if buffer is empty
+    // If buffer is empty, nothing to pop
     if (buffer->count == 0) {
         return false;
     }

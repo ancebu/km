@@ -4,8 +4,14 @@
  */
 
 #include "equilibrium_detector.h"
-#include <Arduino.h>
 #include <math.h>
+#include <string.h>
+
+// Clock function - can be overridden for testing
+#ifndef EQUILIBRIUM_CLOCK_FUNC
+#define EQUILIBRIUM_CLOCK_FUNC default_clock_ms
+static uint32_t default_clock_ms(void) { return 0; }
+#endif
 
 // ============================================================================
 // INTERNAL STATE FOR DT/DT CALCULATION
@@ -43,8 +49,8 @@ static float calculate_temp_spread(const float* temps, uint8_t num_sensors) {
     return max_temp - min_temp;
 }
 
-static float calculate_dt_dmin(float current_temp_c) {
-    uint32_t current_time = millis();
+static float calculate_dt_dmin(float current_temp_c, uint32_t (*clock_func)(void)) {
+    uint32_t current_time = clock_func();
     float dt_dmin = 0.0f;
     
     if (g_last_check_time_ms > 0) {
@@ -105,13 +111,13 @@ bool equilibrium_check(equilibrium_state_t* state,
         return false;
     }
     
-    uint32_t current_time = millis();
+    uint32_t current_time = EQUILIBRIUM_CLOCK_FUNC();
     
     // Condition 1: Check current is below threshold (near-zero load)
     bool current_ok = fabsf(current_a) < g_default_config.current_threshold_a;
     
     // Condition 2: Check temperature derivative (dT/dt < threshold)
-    float dt_dmin = calculate_dt_dmin(aht20_temp_c);
+    float dt_dmin = calculate_dt_dmin(aht20_temp_c, EQUILIBRIUM_CLOCK_FUNC);
     bool dt_ok = dt_dmin < g_default_config.dt_threshold_c_per_min;
     
     // Condition 3: Check temperature spread across all NTC sensors
@@ -201,7 +207,7 @@ error_code_t equilibrium_harvest_point(equilibrium_state_t* state,
     point->ntc_resistance_ohm = ntc_resistance_ohm;
     point->aht20_temperature_c = aht20_temp_c;
     point->ntc_channel_id = ntc_channel_id;
-    point->timestamp_ms = millis();
+    point->timestamp_ms = EQUILIBRIUM_CLOCK_FUNC();
     point->confidence_score = equilibrium_calculate_confidence(state);
     
     state->samples_collected++;
