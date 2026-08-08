@@ -1,7 +1,7 @@
-```
 # PlatformIO build artifacts
 .piolibdeps/
 .platformio/
+.pio/
 
 # ESP-IDF specific
 build/
@@ -27,4 +27,3 @@ lib/
 # OS generated files
 .DS_Store
 Thumbs.db
-```
