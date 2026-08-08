@@ -9,6 +9,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: esp32-battery-monitor
     
     steps:
     - uses: actions/checkout@v3
@@ -41,6 +44,9 @@ jobs:
 
   docs:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: esp32-battery-monitor
     
     steps:
     - uses: actions/checkout@v3
