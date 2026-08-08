@@ -1,8 +1,0 @@
-{
-    "name": "esp32_battery_monitor_native",
-    "buildFlags": "-std=c++17",
-    "srcFilter": [
-        "+<thermistor/*.cpp>",
-        "+<utils/*.cpp>"
-    ]
-}
