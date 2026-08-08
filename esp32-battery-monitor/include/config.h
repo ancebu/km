@@ -137,6 +137,13 @@
 #define CONFIG_SAFETY_ENABLED       1
 
 // ============================================================================
+// LCD DISPLAY CONFIGURATION
+// ============================================================================
+#define CONFIG_LCD_ENABLED          1      // Enable I2C LCD 1602 display
+#define CONFIG_LCD_ADDRESS          0      // 0 = auto-detect, or specify 0x27/0x3F
+#define CONFIG_LCD_UPDATE_INTERVAL  500    // LCD update interval in ms
+
+// ============================================================================
 // DEBUG & TESTING
 // ============================================================================
 #ifdef DEBUG_MODE

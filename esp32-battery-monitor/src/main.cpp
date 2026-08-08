@@ -12,6 +12,7 @@
 #include "mux/mux_controller.h"
 #include "ina226/ina226_driver.h"
 #include "thermistor/thermistor_calc.h"
+#include "lcd_1602/lcd_1602_i2c.h"
 
 static const char* TAG = "MAIN";
 
@@ -20,6 +21,7 @@ static mux_controller_t g_mux;
 static ina226_driver_t g_ina226;
 static ring_buffer_t g_data_buffer;
 static battery_pack_state_t g_pack_state;
+static lcd_1602_state_t g_lcd;
 
 /**
  * @brief Initialize all subsystems
@@ -82,6 +84,22 @@ static error_code_t initialize_system(void) {
     // Initialize pack state
     memset(&g_pack_state, 0, sizeof(g_pack_state));
     g_pack_state.num_temp_sensors = CONFIG_MATRIX_SIZE;
+
+    // Initialize LCD display (optional)
+#if CONFIG_LCD_ENABLED
+    ESP_LOGI(TAG, "Initializing LCD display...");
+    err = lcd_1602_init(&g_lcd, 0);  // 0 = auto-detect address
+    if (IS_ERROR(err)) {
+        ESP_LOGW(TAG, "LCD initialization failed: %s", error_code_to_string(err));
+        ESP_LOGW(TAG, "Continuing without LCD display");
+    } else {
+        ESP_LOGI(TAG, "LCD initialized successfully");
+        lcd_1602_print_at(&g_lcd, 0, 0, "ESP32 Battery");
+        lcd_1602_print_at(&g_lcd, 0, 1, "Monitor Ready");
+        delay(2000);
+        lcd_1602_clear(&g_lcd);
+    }
+#endif
 
     ESP_LOGI(TAG, "System initialization complete");
     return ERR_OK;
@@ -189,6 +207,27 @@ static void update_pack_state(void) {
 #endif
 
     g_pack_state.safety_fault = (g_pack_state.fault_flags != 0);
+
+#if CONFIG_LCD_ENABLED
+    // Update LCD display
+    if (g_lcd.initialized) {
+        char buffer[17];
+        
+        // Line 1: Voltage and Current
+        snprintf(buffer, sizeof(buffer), "V:%.2fV C:%.2fA", 
+                 g_pack_state.pack_voltage_v, g_pack_state.pack_current_a);
+        lcd_1602_print_at(&g_lcd, 0, 0, buffer);
+        
+        // Line 2: Temperature or Power
+        if (g_pack_state.num_temp_sensors > 0 && g_pack_state.temps[0].valid) {
+            snprintf(buffer, sizeof(buffer), "T:%.1fC P:%.1fW",
+                     g_pack_state.temps[0].temperature_c, g_pack_state.pack_power_w);
+        } else {
+            snprintf(buffer, sizeof(buffer), "P:%.1fW", g_pack_state.pack_power_w);
+        }
+        lcd_1602_print_at(&g_lcd, 0, 1, buffer);
+    }
+#endif
 }
 
 /**
