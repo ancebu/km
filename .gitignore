@@ -2,25 +2,33 @@
 # PlatformIO build artifacts
 .piolibdeps/
 .platformio/
-*.pio/
 
-# ESP32 specific
+# Build outputs
 .build/
-.firmware/
+dist/
+.sconsign.dblite
+.pioenvs/
+.firmware.bin
+.spiffs.bin
 
 # Dependencies
 lib/
-deps/
+pioasm/
 
 # Logs
 *.log
 
-# Temporary files
+# Temp files
 *.tmp
 *.bak
+*.swp
 
 # Environment
 .env
 .env.local
 .env.*
+
+# OS specific
+.DS_Store
+Thumbs.db
 ```
