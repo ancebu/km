@@ -3,20 +3,11 @@
 # ============ PlatformIO ============
 .pioenvs/
 .piolibdeps/
-*.pio
-*.pio~
-.piobuild/
+.platformio/
 
 # ============ Build Artifacts ============
-build/
-dist/
 *.o
-*.d
 *.obj
-*.a
-*.so
-*.dll
-*.exe
 *.bin
 *.elf
 *.map
@@ -47,8 +38,6 @@ coverage/
 !tests/*.log
 
 # ============ Temporary Files ============
-tmp/
-temp/
 *.tmp
 *.bak
 
@@ -70,18 +59,11 @@ docs/hardware/renderings/
 __pycache__/
 *.py[cod]
 *$py.class
-.Python
-pip-log.txt
-pip-delete-this-directory.txt
 
 # ============ CMake (Auto-generated only) ============
 CMakeFiles/
 cmake_install.cmake
-build/Makefile
 
 # ============ Compiler Specific ============
 *.orig
 *.rej
-
-# ============ Miscellaneous ============
-*.csv

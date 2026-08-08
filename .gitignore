@@ -1,22 +1,18 @@
 ```
-# PlatformIO build artifacts
-.piolibdeps/
-.platformio/
+# ESP-IDF build artifacts
+/build/
+/__pioenvs_/
+/.pioenvs/
+/.piolibdeps_/
 
-# ESP-IDF specific
-build/
-.cmake/
-cmake-build-*/
-
-# Arduino/ESP32 build artifacts
-*.bin
-*.elf
-*.hex
-*.map
+# General build artifacts
+/build_/
+/dist_/
+/_build_/
 
 # Dependencies
-lib/
-dependencies/
+/lib_/
+/components_/
 
 # Logs
 *.log
@@ -24,15 +20,18 @@ dependencies/
 # Temporary files
 *.tmp
 *.swp
+*~
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
 
 # Environment
 .env
 .env.local
 *.env.*
-
-# Editors
-.vscode/
-.idea/
 
 # OS generated files
 .DS_Store
@@ -41,18 +40,58 @@ Thumbs.db
 # Coverage reports
 coverage/
 htmlcov/
-*.coverage
+.coverage
 
-# Python artifacts (if any Python scripts exist in project)
+# Python specific
 __pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
 *.so
+*.egg-info/
+.eggs/
+.wafpickle_
+.mypy_cache/
+.pytest_cache/
+.tox/
+.coverage_*
 
-# Build directories (general)
-dist/
-target/
-.out
+# C/C++ specific
+*.o
+*.obj
+*.a
+*.lib
+*.so
+*.dll
+*.exe
+*.out
+*.ilk
+*.pdb
+*.iobj
+*.ipdb
+
+# Compressed files
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.rpm
+*.deb
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
 ```
