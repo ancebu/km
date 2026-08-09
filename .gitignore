@@ -1,19 +1,28 @@
-# PlatformIO build artifacts
-.piolibdeps/
-.platformio/
-.pio/
-
-# ESP-IDF specific
+```
+# Build artifacts
+*.o
+*.obj
+*.out
 build/
-.clangd/
-idf_component.yml
+dist/
 
 # Dependencies
-lib/
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Test artifacts
+*.gcda
+*.gcno
+*.gcov
 
 # Logs and temp files
 *.log
 *.tmp
+*.swp
 
 # Environment
 .env
@@ -23,9 +32,15 @@ lib/
 # Editors
 .vscode/
 .idea/
+*.swp
+*.swo
 
-# OS generated files
+# Coverage
+coverage/
+htmlcov/
+.coverage
+
+# OS
 .DS_Store
 Thumbs.db
-
-*.o
+```

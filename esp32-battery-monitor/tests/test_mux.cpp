@@ -95,7 +95,8 @@ void test_error_code_validation() {
 
 void test_ring_buffer_operations() {
     ring_buffer_t buffer;
-    ring_buffer_init(&buffer);
+    error_code_t err = ring_buffer_init(&buffer, 10);
+    REQUIRE(err == ERR_OK);
     
     // Initial state
     {
