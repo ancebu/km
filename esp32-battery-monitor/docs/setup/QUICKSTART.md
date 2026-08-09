@@ -2,12 +2,12 @@
 
 ## 5-Minute Setup
 
-### Step 1: Install PlatformIO (No ESP-IDF!)
+### Step 1: Install PlatformIO
 ```bash
 pip install platformio
 ```
 
-That's it! PlatformIO automatically downloads the ESP32 toolchain on first build.
+PlatformIO automatically downloads the ESP32 toolchain on first build.
 
 ### Step 2: Clone and Build
 ```bash
@@ -187,13 +187,13 @@ Or edit `include/config.h`:
 
 Once you have the basic setup working:
 
-1. ✅ Customize pin assignments in `config.h`
-2. ✅ Wire your hardware per `docs/hardware/SETUP.md`
-3. ✅ Test with `examples/basic/` sketch
-4. 📚 Study the full matrix scanning in `main.cpp`
-5. 🔧 Add custom features (data logging, WiFi, etc.)
-6. 🧪 Write unit tests for new functionality
+1. Customize pin assignments in `config.h`
+2. Wire your hardware per `docs/hardware/SETUP.md`
+3. Test with `examples/basic/` sketch
+4. Study the full matrix scanning in `main.cpp`
+5. Add custom features (data logging, WiFi, etc.)
+6. Write unit tests for new functionality
 
 ---
 
-**Remember**: This project uses **PlatformIO only** - no need to install the massive ESP-IDF framework! PlatformIO handles all toolchain dependencies automatically.
+This project uses PlatformIO only - no need to install the ESP-IDF framework. PlatformIO handles all toolchain dependencies automatically.

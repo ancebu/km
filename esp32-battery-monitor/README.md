@@ -8,13 +8,13 @@ A maintainable, modular ESP32 firmware for monitoring battery packs using a mult
 - **Dual Multiplexer Architecture**: Route any sense wire to INA226 VBUS input
 - **Comprehensive Logging**: Capture voltage, current, power, and temperature data
 - **I2C LCD 1602 Display**: Real-time monitoring on 16x2 character display
-- **Zero Official ESP-IDF Overhead**: Uses PlatformIO for easy setup
+- **PlatformIO-Based**: No ESP-IDF installation required
 - **Modular Design**: Clean separation of concerns for long-term maintainability
 
 ## Quick Start for New Developers
 
 ### Prerequisites
-- [PlatformIO Core](https://platformio.org/install/cli) (lightweight, no official ESP nonsense)
+- [PlatformIO Core](https://platformio.org/install/cli)
   ```bash
   pip install platformio
   ```
@@ -189,4 +189,4 @@ MIT License - See LICENSE file for details
 
 ---
 
-**Built with ❤️ using PlatformIO - No ESP-IDF installation required!**
+MIT License - See LICENSE file for details

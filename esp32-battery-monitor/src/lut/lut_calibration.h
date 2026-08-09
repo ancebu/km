@@ -1,11 +1,9 @@
 /**
  * @file lut_calibration.h
- * @brief Look-Up Table with Cubic Spline Interpolation for High-Precision Temperature
+ * @brief Look-Up Table with Linear Interpolation for Temperature Calibration
  * 
  * Stores empirically measured (Resistance, Temperature) pairs from thermal equilibrium states.
- * Uses cubic spline interpolation to eliminate model error within calibrated range.
- * 
- * Per PDF: Achieves 0.01°C to 0.05°C precision within calibrated range.
+ * Uses linear interpolation between calibrated points to estimate temperature within range.
  */
 
 #pragma once
@@ -96,13 +94,13 @@ error_code_t lut_init(lut_table_t* lut, uint8_t channel_id, uint16_t bin_count);
 error_code_t lut_add_point(lut_table_t* lut, const calibration_point_t* point);
 
 /**
- * @brief Calculate temperature from resistance using cubic spline interpolation
+ * @brief Calculate temperature from resistance using linear interpolation
  * @param lut Pointer to LUT table structure
  * @param resistance_ohm Measured resistance in ohms
  * @param temp_c_output Output: interpolated temperature in Celsius
  * @return ERR_OK if within calibrated range, ERR_OUT_OF_RANGE if extrapolation needed
  * 
- * Uses cubic spline interpolation between discrete data points for maximum precision.
+ * Uses linear interpolation between the two nearest valid bins.
  * Returns error if resistance is outside calibrated bounds (use polynomial instead).
  */
 error_code_t lut_interp_temp(const lut_table_t* lut, float resistance_ohm, float* temp_c_output);
@@ -125,13 +123,13 @@ bool lut_is_in_range(const lut_table_t* lut, float resistance_ohm);
 error_code_t lut_get_range(const lut_table_t* lut, float* min_temp_output, float* max_temp_output);
 
 /**
- * @brief Build cubic spline coefficients from LUT data
+ * @brief Build cubic spline coefficients from LUT data (not implemented)
  * @param lut Pointer to LUT table structure
  * @param coefficients_output Output: array of spline coefficients
  * @param num_coefficients_output Output: number of valid coefficients
- * @return ERR_OK on success, error code if insufficient data
+ * @return ERR_UNSUPPORTED (not implemented - uses linear interpolation instead)
  * 
- * Called automatically by lut_interp_temp, but exposed for debugging.
+ * This function is not implemented. The LUT uses linear interpolation between bins.
  */
 error_code_t lut_build_spline(const lut_table_t* lut,
                                spline_coefficient_t** coefficients_output,

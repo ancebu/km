@@ -259,9 +259,7 @@ void setup() {
     Serial.begin(115200);
     delay(1000);  // Wait for serial to stabilize
 
-    ESP_LOGI(TAG, "=================================");
     ESP_LOGI(TAG, "ESP32 Battery Monitor Starting...");
-    ESP_LOGI(TAG, "=================================");
 
     // Initialize system
     error_code_t err = initialize_system();
