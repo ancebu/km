@@ -41,6 +41,8 @@ typedef struct {
     float reference_temp_c;           // AHT20 temperature at equilibrium start
     float equilibrium_temp_avg_c;     // Average temperature during equilibrium
     uint32_t samples_collected;       // Number of calibration points collected in this session
+    uint32_t last_dt_check_time_ms;   // for dT/dt derivative only
+    float last_dt_check_temp_c;       // for dT/dt derivative only
 } equilibrium_state_t;
 
 /**

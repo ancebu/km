@@ -36,6 +36,9 @@ extern "C" {
  */
 typedef struct {
     uint8_t gate_pin;             // GPIO pin controlling MOSFET gate
+    bool active_high;             // true if gate high = NTC powered
+    uint32_t settle_time_us;      // Settling time after turn-on
+    uint32_t cooldown_time_ms;    // Minimum off time between measurements
     bool initialized;             // true if driver is initialized
     bool is_on;                   // Current MOSFET state
     uint32_t last_on_time_ms;     // Last time MOSFET was turned on

@@ -18,7 +18,12 @@ SRCS_C = \
 
 SRCS_CXX = \
 	../src/thermistor/thermistor_calc.cpp \
-	../src/polynomial/hoge_polynomial.cpp
+	../src/polynomial/hoge_polynomial.cpp \
+	../src/equilibrium/equilibrium_detector.cpp \
+	../src/mosfet_switch/mosfet_switch.cpp \
+	../src/lut/lut_calibration.cpp \
+	../src/aht20/aht20_driver.cpp \
+	../src/ina226/ina226_driver.cpp
 
 # Object files
 OBJS_C = $(SRCS_C:.cpp=.o)
@@ -52,6 +57,21 @@ $(TARGET_CXX): $(TEST_CXX_OBJ) $(OBJS_C) $(OBJS_CXX)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 ../src/polynomial/%.o: ../src/polynomial/%.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+../src/equilibrium/%.o: ../src/equilibrium/%.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+../src/mosfet_switch/%.o: ../src/mosfet_switch/%.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+../src/lut/%.o: ../src/lut/%.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+../src/aht20/%.o: ../src/aht20/%.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+../src/ina226/%.o: ../src/ina226/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 test: $(TARGET_C) $(TARGET_CXX)

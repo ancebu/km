@@ -14,6 +14,17 @@
 #include "config.h"
 
 // ============================================================================
+// PLATFORM COMPATIBILITY
+// ============================================================================
+
+// gpio_num_t compatibility for native builds
+#ifdef ARDUINO_ARCH_ESP32
+  // gpio_num_t comes from esp-idf headers transitively
+#else
+  typedef int gpio_num_t;
+#endif
+
+// ============================================================================
 // ERROR CODES
 // ============================================================================
 typedef enum {

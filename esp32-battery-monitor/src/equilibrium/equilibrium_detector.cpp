@@ -42,21 +42,16 @@ static float calculate_temp_spread(const float* temps, uint8_t num_sensors) {
     return max_temp - min_temp;
 }
 
-// Calculate dT/dt using state stored in equilibrium_state_t (no globals)
+// Calculate dT/dt using dedicated state fields for derivative tracking
 static float calculate_dt_dmin(equilibrium_state_t* state, float current_temp_c, uint32_t current_time) {
     float dt_dmin = 0.0f;
     
-    // Use a static field within the state struct for tracking
-    // We'll use reference_temp_c and equilibrium_start_ms as temp storage for derivative calc
-    // when not in equilibrium. This is a bit of a hack but avoids globals.
-    // Better: add fields to the state struct for this purpose.
-    // For now, we store last_temp in reference_temp_c and last_time in equilibrium_start_ms
-    // when not actively tracking equilibrium.
-    
-    if (state->equilibrium_start_ms > 0) {
-        uint32_t delta_ms = current_time - state->equilibrium_start_ms;
+    // Use dedicated fields last_dt_check_time_ms and last_dt_check_temp_c
+    // to avoid interfering with equilibrium_start_ms/reference_temp_c which track entry time
+    if (state->last_dt_check_time_ms > 0) {
+        uint32_t delta_ms = current_time - state->last_dt_check_time_ms;
         if (delta_ms > 0) {
-            float delta_temp = current_temp_c - state->reference_temp_c;
+            float delta_temp = current_temp_c - state->last_dt_check_temp_c;
             float delta_min = (float)delta_ms / 60000.0f;
             if (delta_min > 0.001f) {
                 dt_dmin = fabsf(delta_temp) / delta_min;
@@ -65,8 +60,8 @@ static float calculate_dt_dmin(equilibrium_state_t* state, float current_temp_c,
     }
     
     // Store for next calculation
-    state->reference_temp_c = current_temp_c;
-    state->equilibrium_start_ms = current_time;
+    state->last_dt_check_temp_c = current_temp_c;
+    state->last_dt_check_time_ms = current_time;
     
     return dt_dmin;
 }

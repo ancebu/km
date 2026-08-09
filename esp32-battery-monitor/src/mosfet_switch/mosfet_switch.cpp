@@ -5,6 +5,7 @@
 
 #include "mosfet_switch.h"
 #include <string.h>
+#include <math.h>
 
 // Clock function - can be overridden for testing
 #ifndef MOSFET_CLOCK_FUNC
@@ -20,6 +21,8 @@ static uint32_t default_mosfet_clock_ms(void) { return 0; }
 #else
 // Native test stubs - inject real implementations via function pointers if needed
 typedef enum { OUTPUT = 0 } PinMode;
+#define LOW 0
+#define HIGH 1
 static inline void MOSFET_PIN_MODE(uint8_t pin, PinMode mode) { (void)pin; (void)mode; }
 static inline void MOSFET_DIGITAL_WRITE(uint8_t pin, bool val) { (void)pin; (void)val; }
 static inline void MOSFET_DELAY_US(uint32_t us) { (void)us; }

@@ -26,17 +26,13 @@ static uint32_t default_ina226_clock_ms(void) { return 0; }
 #define INA226_REG_MANUFACTURER 0xFE
 #define INA226_REG_DIE_ID       0xFF
 
-#ifdef ARDUINO_ARCH_ESP32
-#include <Arduino.h>
-#include <Wire.h>
-
-// Configuration register bits
+// Configuration register bits (needed for both Arduino and native builds)
 #define INA226_CONFIG_RESET     (1 << 15)
 #define INA226_CONFIG_AVG_MASK  0x0E00
 #define INA226_CONFIG_BRCT_MASK 0x0007
 #define INA226_CONFIG_MODE_MASK 0x0007
 
-// Averaging settings
+// Averaging settings (needed for both Arduino and native builds)
 #define INA226_AVG_1            0
 #define INA226_AVG_4            1
 #define INA226_AVG_16           2
@@ -46,7 +42,7 @@ static uint32_t default_ina226_clock_ms(void) { return 0; }
 #define INA226_AVG_512          6
 #define INA226_AVG_1024         7
 
-// Conversion time settings (in 140us units)
+// Conversion time settings (in 140us units) (needed for both Arduino and native builds)
 #define INA226_CONV_140US       0
 #define INA226_CONV_204US       1
 #define INA226_CONV_332US       2
@@ -56,7 +52,7 @@ static uint32_t default_ina226_clock_ms(void) { return 0; }
 #define INA226_CONV_4156US      6
 #define INA226_CONV_8244US      7
 
-// Mode settings
+// Mode settings (needed for both Arduino and native builds)
 #define INA226_MODE_SHUTDOWN    0
 #define INA226_MODE_SHUNT_TRIG  1
 #define INA226_MODE_BUS_TRIG    2
@@ -65,10 +61,14 @@ static uint32_t default_ina226_clock_ms(void) { return 0; }
 #define INA226_MODE_BUS_CONT    6
 #define INA226_MODE_SHUNT_BUS_CONT 7
 
-// LSB values
+// LSB values (needed for both Arduino and native builds)
 #define INA226_SHUNT_LSB_uV     2.5f    // 2.5 µV per bit
 #define INA226_BUS_LSB_mV       1.25f   // 1.25 mV per bit
 #define INA226_POWER_LSB_W      25.0f   // 25 µW per bit (when CAL = 40960 / I_LSB)
+
+#ifdef ARDUINO_ARCH_ESP32
+#include <Arduino.h>
+#include <Wire.h>
 
 // Arduino/Wire wrappers
 static inline void INA226_WIRE_BEGIN(int sda, int scl) { Wire.begin(sda, scl); }
@@ -400,7 +400,7 @@ error_code_t ina226_driver_reset(ina226_driver_t* driver) {
         return err;
     }
     
-    delay(1);  // Wait for reset
+    INA226_DELAY_MS(1);  // Wait for reset
     
     // Re-initialize with default configuration
     uint16_t config = INA226_MODE_SHUNT_BUS_CONT;

@@ -27,33 +27,63 @@
 // ============================================================================
 
 // I2C Bus Configuration
+#ifdef ARDUINO_ARCH_ESP32
 #define CONFIG_I2C_SDA_PIN        GPIO_NUM_21
 #define CONFIG_I2C_SCL_PIN        GPIO_NUM_22
+#else
+#define CONFIG_I2C_SDA_PIN        21  // Native stub: use integer pin number
+#define CONFIG_I2C_SCL_PIN        22  // Native stub: use integer pin number
+#endif
 #define CONFIG_I2C_FREQUENCY      400000U  // 400 kHz
 
 // Multiplexer A Control Pins (8-channel example)
+#ifdef ARDUINO_ARCH_ESP32
 #define CONFIG_MUX_A_SELECT_0     GPIO_NUM_18
 #define CONFIG_MUX_A_SELECT_1     GPIO_NUM_19
 #define CONFIG_MUX_A_SELECT_2     GPIO_NUM_23
 #define CONFIG_MUX_A_ENABLE       GPIO_NUM_5  // Active low
+#else
+#define CONFIG_MUX_A_SELECT_0     18
+#define CONFIG_MUX_A_SELECT_1     19
+#define CONFIG_MUX_A_SELECT_2     23
+#define CONFIG_MUX_A_ENABLE       5  // Active low
+#endif
 
 // Multiplexer B Control Pins (8-channel example)
+#ifdef ARDUINO_ARCH_ESP32
 #define CONFIG_MUX_B_SELECT_0     GPIO_NUM_25
 #define CONFIG_MUX_B_SELECT_1     GPIO_NUM_26
 #define CONFIG_MUX_B_SELECT_2     GPIO_NUM_27
 #define CONFIG_MUX_B_ENABLE       GPIO_NUM_4  // Active low
+#else
+#define CONFIG_MUX_B_SELECT_0     25
+#define CONFIG_MUX_B_SELECT_1     26
+#define CONFIG_MUX_B_SELECT_2     27
+#define CONFIG_MUX_B_ENABLE       4  // Active low
+#endif
 
 // Optional: Third mux for additional channels
 #define CONFIG_MUX_C_ENABLED      0
 #if CONFIG_MUX_C_ENABLED
+    #ifdef ARDUINO_ARCH_ESP32
     #define CONFIG_MUX_C_SELECT_0   GPIO_NUM_32
     #define CONFIG_MUX_C_SELECT_1   GPIO_NUM_33
     #define CONFIG_MUX_C_SELECT_2   GPIO_NUM_34
     #define CONFIG_MUX_C_ENABLE     GPIO_NUM_35
+    #else
+    #define CONFIG_MUX_C_SELECT_0   32
+    #define CONFIG_MUX_C_SELECT_1   33
+    #define CONFIG_MUX_C_SELECT_2   34
+    #define CONFIG_MUX_C_ENABLE     35
+    #endif
 #endif
 
 // NTC Power Control MOSFET Gate Pin (self-heating mitigation)
+#ifdef ARDUINO_ARCH_ESP32
 #define CONFIG_NTC_MOSFET_GATE_PIN  GPIO_NUM_12
+#else
+#define CONFIG_NTC_MOSFET_GATE_PIN  12  // Native stub: use integer pin number
+#endif
 #define CONFIG_NTC_MOSFET_ACTIVE_HIGH 1
 
 // ============================================================================

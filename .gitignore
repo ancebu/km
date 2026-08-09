@@ -1,21 +1,37 @@
-# PlatformIO build artifacts
+```
+# Build artifacts and compiled files
+*.o
+*.obj
+*.out
+*.bin
+*.elf
+*.hex
+*.a
+*.so
+*.dylib
+*.dll
+
+# PlatformIO specific
+.pio/
+pioenvs/
 .piolibdeps/
 .platformio/
-.pio/
 
-# ESP-IDF specific
-build/
-.clangd/
-idf_component.yml
+# Test artifacts
+tests/*.o
+tests/*_test
+tests/test_*
 
 # Dependencies
 lib/
+libs/
 
 # Logs and temp files
 *.log
 *.tmp
+*.swp
 
-# Environment
+# Environment and config
 .env
 .env.local
 *.env.*
@@ -27,5 +43,4 @@ lib/
 # OS generated files
 .DS_Store
 Thumbs.db
-
-*.o
+```

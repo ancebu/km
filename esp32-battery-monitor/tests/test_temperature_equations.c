@@ -476,7 +476,7 @@ TEST(test_refit_threshold_power_of_10) {
     thermistor_calibration_t cal;
     thermistor_get_default_calibration(&cal);
     
-    error_code_t err = hoge_polynomial_init(&state, 1000);
+    error_code_t err = hoge_polynomial_init(&state, 200);
     ASSERT_TRUE(err == ERR_OK);
     
     // Add samples one by one and check refit triggers at power-of-10
@@ -496,6 +496,13 @@ TEST(test_refit_threshold_power_of_10) {
     
     ASSERT_TRUE(refit_at_10);
     ASSERT_TRUE(refit_at_100);
+    PRINT_PASS();
+}
+
+TEST(test_poly_init_rejects_oversized_max_samples) {
+    poly_fit_state_t state;
+    error_code_t err = hoge_polynomial_init(&state, 1000);
+    ASSERT_TRUE(err == ERR_OUT_OF_RANGE);
     PRINT_PASS();
 }
 
@@ -595,6 +602,7 @@ int main(void) {
     /* Group 6: PDF Claims */
     printf("--- Group 6: PDF Research Claims Validation ---\n");
     RUN_TEST(test_refit_threshold_power_of_10);
+    RUN_TEST(test_poly_init_rejects_oversized_max_samples);
     RUN_TEST(test_phantom_stabilizes_extrapolation);
     printf("\n");
     
