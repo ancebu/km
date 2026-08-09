@@ -1,48 +1,28 @@
-```
-# Build artifacts
-*.o
-*.obj
-*.a
-*.so
-*.dylib
-*.dll
-*.exe
-*.out
+# PlatformIO build artifacts
+.piolibdeps/
+.platformio/
+.pio/
+
+# ESP-IDF specific
+build/
+.clangd/
+idf_component.yml
 
 # Dependencies
-.pio/
-.platformio/
 lib/
-components/
 
-# Logs
+# Logs and temp files
 *.log
-**/logs/
-
-# Temporary files
 *.tmp
-*.swp
-*.swo
 
 # Environment
 .env
 .env.local
-.env.*
+*.env.*
 
 # Editors
 .vscode/
 .idea/
-*.swp
-*.swo
-
-# Coverage
-.coverage
-coverage/
-htmlcov/
-
-# Tests
-.tests/
-.test_results/
 
 # OS generated files
 .DS_Store
