@@ -3,8 +3,8 @@
 
 CC = gcc
 CXX = g++
-CFLAGS = -std=c99 -Wall -Wextra -O2 -I../include -I../src
-CXXFLAGS = -std=c++17 -Wall -Wextra -O2 -I../include -I../src
+CFLAGS = -std=c99 -Wall -Wextra -Werror -O2 -I../include -I../src
+CXXFLAGS = -std=c++17 -Wall -Wextra -Werror -O2 -I../include -I../src
 LDFLAGS = -lm
 
 # Test sources
