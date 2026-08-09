@@ -4,18 +4,23 @@
  */
 
 #include "aht20_driver.h"
+#include <string.h>
+#include <math.h>
+
+// Clock function - can be overridden for testing
+#ifndef AHT20_CLOCK_FUNC
+#define AHT20_CLOCK_FUNC default_aht20_clock_ms
+static uint32_t default_aht20_clock_ms(void) { return 0; }
+#endif
+
+#ifdef ARDUINO_ARCH_ESP32
 #include <Arduino.h>
 #include <Wire.h>
 
-// ============================================================================
-// INTERNAL STATE FOR DT/Dt CALCULATION
-// ============================================================================
-static float g_last_temp = 0.0f;
-static uint32_t g_last_temp_time_ms = 0;
-
-// ============================================================================
-// HELPER FUNCTIONS
-// ============================================================================
+// Arduino/Wire wrappers
+static inline void AHT20_WIRE_BEGIN(int sda, int scl) { Wire.begin(sda, scl); }
+static inline void AHT20_DELAY_MS(uint32_t ms) { delay(ms); }
+static inline uint32_t AHT20_MILLIS() { return millis(); }
 
 static error_code_t aht20_write_command(uint8_t address, uint8_t cmd) {
     Wire.beginTransmission(address);
@@ -37,15 +42,44 @@ static error_code_t aht20_read_bytes(uint8_t address, uint8_t* buffer, size_t le
     return ERR_OK;
 }
 
+#else
+// Native test stubs - I2C functions must be injected for real hardware
+typedef struct {
+    uint8_t last_cmd;
+    uint8_t response_buffer[8];
+    size_t response_len;
+} aht20_i2c_stub_t;
+
+static aht20_i2c_stub_t s_i2c_stub;
+
+static inline void AHT20_WIRE_BEGIN(int sda, int scl) { (void)sda; (void)scl; }
+static inline void AHT20_DELAY_MS(uint32_t ms) { (void)ms; }
+static inline uint32_t AHT20_MILLIS() { return 0; }
+
+static error_code_t aht20_write_command(uint8_t address, uint8_t cmd) {
+    (void)address;
+    s_i2c_stub.last_cmd = cmd;
+    return ERR_OK;  // Stub always succeeds
+}
+
+static error_code_t aht20_read_bytes(uint8_t address, uint8_t* buffer, size_t len) {
+    (void)address;
+    for (size_t i = 0; i < len && i < s_i2c_stub.response_len; i++) {
+        buffer[i] = s_i2c_stub.response_buffer[i];
+    }
+    return ERR_OK;  // Stub always succeeds
+}
+#endif
+
 static error_code_t aht20_wait_ready(uint8_t address, uint32_t timeout_ms) {
-    uint32_t start = millis();
-    while (millis() - start < timeout_ms) {
+    uint32_t start = AHT20_MILLIS();
+    while (AHT20_MILLIS() - start < timeout_ms) {
         uint8_t status[1];
         error_code_t err = aht20_read_bytes(address, status, 1);
         if (err == ERR_OK && !(status[0] & AHT20_STATUS_BUSY)) {
             return ERR_OK;
         }
-        delay(5);
+        AHT20_DELAY_MS(5);
     }
     return ERR_TIMEOUT;
 }
@@ -63,10 +97,11 @@ error_code_t aht20_init(aht20_state_t* state) {
     state->i2c_address = AHT20_DEFAULT_ADDRESS;
     
     // Initialize I2C if not already done
-    Wire.begin(CONFIG_I2C_SDA_PIN, CONFIG_I2C_SCL_PIN);
-    delay(10);
+    AHT20_WIRE_BEGIN(CONFIG_I2C_SDA_PIN, CONFIG_I2C_SCL_PIN);
+    AHT20_DELAY_MS(10);
     
     // Send initialization command
+#ifdef ARDUINO_ARCH_ESP32
     Wire.beginTransmission(state->i2c_address);
     Wire.write(AHT20_CMD_INITIALIZE);
     Wire.write(0x08);  // Initialization parameter
@@ -74,8 +109,11 @@ error_code_t aht20_init(aht20_state_t* state) {
     if (Wire.endTransmission() != 0) {
         return ERR_COMMUNICATION;
     }
+#else
+    aht20_write_command(state->i2c_address, AHT20_CMD_INITIALIZE);
+#endif
     
-    delay(10);
+    AHT20_DELAY_MS(10);
     
     // Check calibration status
     uint8_t status[1];
@@ -85,7 +123,10 @@ error_code_t aht20_init(aht20_state_t* state) {
     }
     
     state->initialized = true;
-    state->last_read_ms = millis();
+    state->last_read_ms = AHT20_CLOCK_FUNC();
+    // Initialize derivative tracking fields in state struct
+    state->last_temp_reading = 0.0f;
+    state->last_temp_time_ms = 0;
     
     return ERR_OK;
 }
@@ -100,6 +141,7 @@ error_code_t aht20_read(aht20_state_t* state, aht20_data_t* data) {
     }
     
     // Trigger measurement
+#ifdef ARDUINO_ARCH_ESP32
     Wire.beginTransmission(state->i2c_address);
     Wire.write(AHT20_CMD_TRIGGER);
     Wire.write(0x33);  // Measurement parameter
@@ -108,9 +150,13 @@ error_code_t aht20_read(aht20_state_t* state, aht20_data_t* data) {
         state->error_count++;
         return ERR_COMMUNICATION;
     }
+#else
+    // Native stub: simulate trigger command
+    aht20_write_command(state->i2c_address, AHT20_CMD_TRIGGER);
+#endif
     
     // Wait for measurement to complete (~80ms per datasheet)
-    delay(80);
+    AHT20_DELAY_MS(80);
     
     // Read status byte
     uint8_t status_byte;
@@ -147,14 +193,18 @@ error_code_t aht20_read(aht20_state_t* state, aht20_data_t* data) {
     humidity += state->humidity_offset;
     
     // Clamp humidity to valid range
+#ifdef ARDUINO_ARCH_ESP32
     humidity = constrain(humidity, 0.0f, 100.0f);
+#else
+    humidity = fminf(fmaxf(humidity, 0.0f), 100.0f);
+#endif
     
     // Populate output data
     data->temperature_c = temp_c;
     data->humidity_percent = humidity;
     data->status = status_byte;
     data->valid = true;
-    data->timestamp_ms = millis();
+    data->timestamp_ms = AHT20_CLOCK_FUNC();
     
     // Update derivative calculation
     aht20_calculate_dt_dmin(state, temp_c);
@@ -171,7 +221,8 @@ error_code_t aht20_read_nonblocking(aht20_state_t* state, aht20_data_t* data) {
     }
     
     // Check if enough time has passed since last read
-    if (millis() - state->last_read_ms < 100) {
+    uint32_t current_time = AHT20_CLOCK_FUNC();
+    if (current_time - state->last_read_ms < 100) {
         // Return cached data or error if none available
         if (state->last_read_ms == 0) {
             return ERR_TIMEOUT;
@@ -184,15 +235,17 @@ error_code_t aht20_read_nonblocking(aht20_state_t* state, aht20_data_t* data) {
 }
 
 float aht20_calculate_dt_dmin(aht20_state_t* state, float new_temp) {
-    UNUSED(state);
+    if (!state) {
+        return 0.0f;
+    }
     
-    uint32_t current_time = millis();
+    uint32_t current_time = AHT20_CLOCK_FUNC();
     float dt_dmin = 0.0f;
     
-    if (g_last_temp_time_ms > 0) {
-        uint32_t delta_ms = current_time - g_last_temp_time_ms;
+    if (state->last_temp_time_ms > 0) {
+        uint32_t delta_ms = current_time - state->last_temp_time_ms;
         if (delta_ms > 0) {
-            float delta_temp = new_temp - g_last_temp;
+            float delta_temp = new_temp - state->last_temp_reading;
             float delta_min = (float)delta_ms / 60000.0f;  // Convert ms to minutes
             if (delta_min > 0.001f) {  // Avoid division by very small numbers
                 dt_dmin = delta_temp / delta_min;
@@ -200,9 +253,9 @@ float aht20_calculate_dt_dmin(aht20_state_t* state, float new_temp) {
         }
     }
     
-    // Store for next calculation
-    g_last_temp = new_temp;
-    g_last_temp_time_ms = current_time;
+    // Store for next calculation in state struct (no globals)
+    state->last_temp_reading = new_temp;
+    state->last_temp_time_ms = current_time;
     
     return dt_dmin;
 }
@@ -217,7 +270,7 @@ error_code_t aht20_reset(aht20_state_t* state) {
         return err;
     }
     
-    delay(20);  // Wait for reset to complete
+    AHT20_DELAY_MS(20);  // Wait for reset to complete
     
     // Re-initialize
     return aht20_init(state);

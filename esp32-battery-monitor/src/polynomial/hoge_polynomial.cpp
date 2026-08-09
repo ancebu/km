@@ -82,6 +82,11 @@ error_code_t hoge_polynomial_init(poly_fit_state_t* state, uint32_t max_samples)
         return ERR_INVALID_ARG;
     }
     
+    // Hard clamp to prevent stack overflow in hoge_polynomial_fit
+    if (max_samples > HOGE_REFIT_SAMPLE_THRESHOLD_POWER_OF_10) {
+        return ERR_OUT_OF_RANGE;
+    }
+    
     memset(state, 0, sizeof(poly_fit_state_t));
     
     // Allocate sample buffer
