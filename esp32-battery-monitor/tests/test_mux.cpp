@@ -1,12 +1,30 @@
 /**
  * @file test_mux.cpp
  * @brief Unit tests for multiplexer controller
+ * Native C++ test harness - no external dependencies
  */
 
 #include "config.h"
 #include "types.h"
 #include "thermistor/thermistor_calc.h"
-#include <catch2/catch_all.hpp>
+#include <cstdio>
+#include <cstring>
+#include <cmath>
+
+// Minimal native test framework
+static int g_tests_run = 0;
+static int g_tests_passed = 0;
+static int g_tests_failed = 0;
+
+#define REQUIRE(expr) do { \
+    g_tests_run++; \
+    if (expr) { \
+        g_tests_passed++; \
+    } else { \
+        g_tests_failed++; \
+        fprintf(stderr, "  FAIL: %s at line %d\n", #expr, __LINE__); \
+    } \
+} while(0)
 
 // Mock implementations for testing (no hardware)
 namespace mock {
@@ -21,7 +39,7 @@ namespace mock {
     }
 }
 
-TEST_CASE("Mux controller initialization", "[mux]") {
+void test_mux_controller_initialization() {
     // Test that mux controller can be initialized
     // Note: Full hardware tests require actual ESP32
     REQUIRE(CONFIG_MUX_CHANNELS_A > 0);
@@ -29,21 +47,24 @@ TEST_CASE("Mux controller initialization", "[mux]") {
     REQUIRE(CONFIG_MATRIX_SIZE == CONFIG_MUX_CHANNELS_A * CONFIG_MUX_CHANNELS_B);
 }
 
-TEST_CASE("Matrix coordinate conversion", "[mux][math]") {
-    SECTION("Forward conversion") {
+void test_matrix_coordinate_conversion() {
+    // Forward conversion
+    {
         matrix_coord_t coord = {2, 3};
         uint16_t index = matrix_coord_to_index(coord);
         REQUIRE(index == (2 * CONFIG_MATRIX_COLS) + 3);
     }
     
-    SECTION("Reverse conversion") {
+    // Reverse conversion
+    {
         uint16_t index = 11;
         matrix_coord_t coord = matrix_index_to_coord(index);
         REQUIRE(coord.row == index / CONFIG_MATRIX_COLS);
         REQUIRE(coord.col == index % CONFIG_MATRIX_COLS);
     }
     
-    SECTION("Round-trip conversion") {
+    // Round-trip conversion
+    {
         for (uint8_t row = 0; row < CONFIG_MATRIX_ROWS; row++) {
             for (uint8_t col = 0; col < CONFIG_MATRIX_COLS; col++) {
                 matrix_coord_t original = {row, col};
@@ -57,30 +78,34 @@ TEST_CASE("Matrix coordinate conversion", "[mux][math]") {
     }
 }
 
-TEST_CASE("Error code validation", "[types]") {
-    SECTION("Success code") {
+void test_error_code_validation() {
+    // Success code
+    {
         REQUIRE(IS_SUCCESS(ERR_OK));
         REQUIRE(!IS_ERROR(ERR_OK));
     }
     
-    SECTION("Error codes") {
+    // Error codes
+    {
         REQUIRE(IS_ERROR(ERR_INVALID_ARG));
         REQUIRE(IS_ERROR(ERR_TIMEOUT));
         REQUIRE(IS_ERROR(ERR_NOT_INITIALIZED));
     }
 }
 
-TEST_CASE("Ring buffer operations", "[buffer]") {
+void test_ring_buffer_operations() {
     ring_buffer_t buffer;
     ring_buffer_init(&buffer);
     
-    SECTION("Initial state") {
+    // Initial state
+    {
         REQUIRE(ring_buffer_is_empty(&buffer));
         REQUIRE(!ring_buffer_is_full(&buffer));
         REQUIRE(ring_buffer_count(&buffer) == 0);
     }
     
-    SECTION("Push and pop") {
+    // Push and pop
+    {
         battery_pack_state_t state;
         memset(&state, 0, sizeof(state));
         state.pack_voltage_v = 12.5f;
@@ -95,7 +120,8 @@ TEST_CASE("Ring buffer operations", "[buffer]") {
         REQUIRE(ring_buffer_is_empty(&buffer));
     }
     
-    SECTION("Buffer overflow handling") {
+    // Buffer overflow handling
+    {
         // Fill buffer to capacity
         for (int i = 0; i < CONFIG_RING_BUFFER_SIZE + 10; i++) {
             battery_pack_state_t state;
@@ -109,7 +135,7 @@ TEST_CASE("Ring buffer operations", "[buffer]") {
     }
 }
 
-TEST_CASE("Thermistor calibration defaults", "[thermistor]") {
+void test_thermistor_calibration_defaults() {
     thermistor_calibration_t cal;
     thermistor_get_default_calibration(&cal);
     
@@ -121,15 +147,17 @@ TEST_CASE("Thermistor calibration defaults", "[thermistor]") {
     REQUIRE(cal.offset_c == 0.0f);
 }
 
-TEST_CASE("Temperature validation", "[thermistor]") {
-    SECTION("Valid temperatures") {
+void test_temperature_validation() {
+    // Valid temperatures
+    {
         REQUIRE(thermistor_is_valid_temp(25.0f));
         REQUIRE(thermistor_is_valid_temp(0.0f));
         REQUIRE(thermistor_is_valid_temp(-20.0f));
         REQUIRE(thermistor_is_valid_temp(80.0f));
     }
     
-    SECTION("Invalid temperatures") {
+    // Invalid temperatures
+    {
         REQUIRE(!thermistor_is_valid_temp(CONFIG_TEMP_MIN_C - 10.0f));
         REQUIRE(!thermistor_is_valid_temp(CONFIG_TEMP_MAX_C + 10.0f));
         REQUIRE(!thermistor_is_valid_temp(NAN));
@@ -137,16 +165,18 @@ TEST_CASE("Temperature validation", "[thermistor]") {
     }
 }
 
-TEST_CASE("Fault flag operations", "[battery]") {
+void test_fault_flag_operations() {
     uint32_t flags = 0;
     
-    SECTION("Single fault") {
+    // Single fault
+    {
         flags |= FAULT_OVERVOLTAGE;
         REQUIRE(flags & FAULT_OVERVOLTAGE);
         REQUIRE(!(flags & FAULT_UNDERVOLTAGE));
     }
     
-    SECTION("Multiple faults") {
+    // Multiple faults
+    {
         flags |= FAULT_OVERVOLTAGE;
         flags |= FAULT_OVERCURRENT;
         flags |= FAULT_OVERTEMPERATURE;
@@ -157,15 +187,17 @@ TEST_CASE("Fault flag operations", "[battery]") {
         REQUIRE(!(flags & FAULT_UNDERVOLTAGE));
     }
     
-    SECTION("Clear faults") {
+    // Clear faults
+    {
         flags = 0xFFFFFFFF;
         flags = 0;
         REQUIRE(flags == 0);
     }
 }
 
-TEST_CASE("Configuration validation", "[config]") {
-    SECTION("Reasonable limits") {
+void test_configuration_validation() {
+    // Reasonable limits
+    {
         REQUIRE(CONFIG_INA226_SHUNT_R > 0.0f);
         REQUIRE(CONFIG_INA226_SHUNT_R < 1.0f);  // Less than 1 ohm
         REQUIRE(CONFIG_INA226_MAX_CURRENT > 0.0f);
@@ -173,9 +205,32 @@ TEST_CASE("Configuration validation", "[config]") {
         REQUIRE(CONFIG_THERMISTOR_BETA < 5000.0f);
     }
     
-    SECTION("Safety thresholds") {
+    // Safety thresholds
+    {
         REQUIRE(CONFIG_OVERVOLT_THRESHOLD_V > CONFIG_CELL_VOLTAGE_MIN);
         REQUIRE(CONFIG_UNDERVOLT_THRESHOLD_V < CONFIG_CELL_VOLTAGE_MAX);
         REQUIRE(CONFIG_OVERTEMP_THRESHOLD_C > 0.0f);
     }
+}
+
+// Test runner main function
+int main() {
+    fprintf(stdout, "Running MUX Controller Tests...\n\n");
+    
+    test_mux_controller_initialization();
+    test_matrix_coordinate_conversion();
+    test_error_code_validation();
+    test_ring_buffer_operations();
+    test_thermistor_calibration_defaults();
+    test_temperature_validation();
+    test_fault_flag_operations();
+    test_configuration_validation();
+    
+    fprintf(stdout, "\n========================================\n");
+    fprintf(stdout, "Tests Run:    %d\n", g_tests_run);
+    fprintf(stdout, "Passed:       %d\n", g_tests_passed);
+    fprintf(stdout, "Failed:       %d\n", g_tests_failed);
+    fprintf(stdout, "========================================\n");
+    
+    return (g_tests_failed == 0) ? 0 : 1;
 }

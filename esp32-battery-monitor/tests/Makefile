@@ -1,18 +1,20 @@
-# Makefile for Temperature Equations Unit Tests
-# Pure C99, native compilation, no PIO, no frameworks
+# Makefile for Native Unit Tests
+# Pure C99/C++17, native compilation, no PIO, no frameworks
 
 CC = gcc
 CXX = g++
-CFLAGS = -std=c99 -Wall -Wextra -O2 -I../include
-CXXFLAGS = -std=c++11 -Wall -Wextra -O2 -I../include
+CFLAGS = -std=c99 -Wall -Wextra -O2 -I../include -I../src
+CXXFLAGS = -std=c++17 -Wall -Wextra -O2 -I../include -I../src
 LDFLAGS = -lm
 
-# Test source
-TEST_SRC = test_temperature_equations.c
+# Test sources
+TEST_C_SRC = test_temperature_equations.c
+TEST_CXX_SRC = test_mux.cpp
 
 # Source files to link (native-compatible implementations)
 SRCS_C = \
-	../src/utils/error_codes_native.cpp
+	../src/utils/error_codes_native.cpp \
+	../src/utils/ring_buffer.cpp
 
 SRCS_CXX = \
 	../src/thermistor/thermistor_calc.cpp \
@@ -21,19 +23,27 @@ SRCS_CXX = \
 # Object files
 OBJS_C = $(SRCS_C:.cpp=.o)
 OBJS_CXX = $(SRCS_CXX:.cpp=.o)
-TEST_OBJ = $(TEST_SRC:.c=.o)
+TEST_C_OBJ = $(TEST_C_SRC:.c=.o)
+TEST_CXX_OBJ = $(TEST_CXX_SRC:.cpp=.o)
 
-TARGET = test_temperature_equations
+TARGET_C = test_temperature_equations
+TARGET_CXX = test_mux
 
 .PHONY: all clean test run
 
-all: $(TARGET)
+all: $(TARGET_C) $(TARGET_CXX)
 
-$(TARGET): $(TEST_OBJ) $(OBJS_C) $(OBJS_CXX)
-	$(CC) $(TEST_OBJ) $(OBJS_C) $(OBJS_CXX) -o $@ $(LDFLAGS)
+$(TARGET_C): $(TEST_C_OBJ) $(OBJS_C) $(OBJS_CXX)
+	$(CC) $(TEST_C_OBJ) $(OBJS_C) $(OBJS_CXX) -o $@ $(LDFLAGS)
+
+$(TARGET_CXX): $(TEST_CXX_OBJ) $(OBJS_C) $(OBJS_CXX)
+	$(CXX) $(TEST_CXX_OBJ) $(OBJS_C) $(OBJS_CXX) -o $@ $(LDFLAGS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
+
+%.o: %.cpp
+	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 ../src/utils/%.o: ../src/utils/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
@@ -44,10 +54,14 @@ $(TARGET): $(TEST_OBJ) $(OBJS_C) $(OBJS_CXX)
 ../src/polynomial/%.o: ../src/polynomial/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-test: $(TARGET)
-	./$(TARGET)
+test: $(TARGET_C) $(TARGET_CXX)
+	@echo "Running Temperature Equations Tests..."
+	@./$(TARGET_C)
+	@echo ""
+	@echo "Running MUX Controller Tests..."
+	@./$(TARGET_CXX)
 
 run: test
 
 clean:
-	rm -f $(TEST_OBJ) $(OBJS_C) $(OBJS_CXX) $(TARGET)
+	rm -f $(TEST_C_OBJ) $(TEST_CXX_OBJ) $(OBJS_C) $(OBJS_CXX) $(TARGET_C) $(TARGET_CXX)
