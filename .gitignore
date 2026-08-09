@@ -44,5 +44,8 @@ htmlcov/
 .tests/
 .test_results/
 
-# Original rules preserved
-```
+# OS generated files
+.DS_Store
+Thumbs.db
+
+*.o
