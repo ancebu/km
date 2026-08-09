@@ -18,22 +18,21 @@ static uint32_t default_lut_clock_ms(void) { return 0; }
 // CUBIC SPLINE INTERPOLATION (Natural Spline)
 // ============================================================================
 
-static spline_coefficient_t* g_spline_cache = NULL;
-static uint16_t g_spline_cache_size = 0;
-
 // Build natural cubic spline coefficients from data points
+// Note: Uses local allocation per-call to avoid global state
 static bool build_natural_spline(const float* x, const float* y, int n, 
-                                  spline_coefficient_t** coeffs_out, int* n_out) {
+                                  spline_coefficient_t** coeffs_out, int* n_out,
+                                  spline_coefficient_t* local_cache, uint16_t cache_size) {
     if (n < 2) return false;
     
-    // Allocate coefficient array
-    if (!g_spline_cache || g_spline_cache_size < (uint16_t)(n - 1)) {
-        if (g_spline_cache) free(g_spline_cache);
-        g_spline_cache = (spline_coefficient_t*)calloc(n - 1, sizeof(spline_coefficient_t));
-        g_spline_cache_size = n - 1;
+    // Use provided local cache or allocate
+    spline_coefficient_t* coeffs = NULL;
+    if (local_cache && cache_size >= (uint16_t)(n - 1)) {
+        coeffs = local_cache;
+    } else {
+        coeffs = (spline_coefficient_t*)calloc(n - 1, sizeof(spline_coefficient_t));
+        if (!coeffs) return false;
     }
-    
-    spline_coefficient_t* coeffs = g_spline_cache;
     
     // For simplicity, use Catmull-Rom style interpolation
     // This is a simplified approach - full natural spline would solve tridiagonal system

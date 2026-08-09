@@ -58,6 +58,9 @@ typedef struct {
     float humidity_offset;    // Humidity offset calibration
     uint32_t last_read_ms;    // Last successful read timestamp
     uint8_t error_count;      // Consecutive error count
+    // Derivative tracking for dT/dt calculation (moved from globals)
+    float last_temp_reading;  // Previous temperature reading
+    uint32_t last_temp_time_ms; // Timestamp of previous reading
 } aht20_state_t;
 
 // ============================================================================

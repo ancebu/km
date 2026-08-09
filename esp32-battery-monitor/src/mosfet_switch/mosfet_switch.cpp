@@ -4,15 +4,26 @@
  */
 
 #include "mosfet_switch.h"
-#include <Arduino.h>
+#include <string.h>
 
-// Default configuration
-static mosfet_config_t g_default_config = {
-    .gate_pin = 12,                  // Default gate pin (configurable)
-    .active_high = true,             // Active-high gate drive
-    .settle_time_us = MOSFET_SETTLE_TIME_US,
-    .cooldown_time_ms = MOSFET_COOLDOWN_TIME_MS
-};
+// Clock function - can be overridden for testing
+#ifndef MOSFET_CLOCK_FUNC
+#define MOSFET_CLOCK_FUNC default_mosfet_clock_ms
+static uint32_t default_mosfet_clock_ms(void) { return 0; }
+#endif
+
+#ifdef ARDUINO_ARCH_ESP32
+#include <Arduino.h>
+#define MOSFET_PIN_MODE(pin, mode) pinMode(pin, mode)
+#define MOSFET_DIGITAL_WRITE(pin, val) digitalWrite(pin, val)
+#define MOSFET_DELAY_US(us) delayMicroseconds(us)
+#else
+// Native test stubs - inject real implementations via function pointers if needed
+typedef enum { OUTPUT = 0 } PinMode;
+static inline void MOSFET_PIN_MODE(uint8_t pin, PinMode mode) { (void)pin; (void)mode; }
+static inline void MOSFET_DIGITAL_WRITE(uint8_t pin, bool val) { (void)pin; (void)val; }
+static inline void MOSFET_DELAY_US(uint32_t us) { (void)us; }
+#endif
 
 // ============================================================================
 // PUBLIC API IMPLEMENTATION
@@ -25,20 +36,27 @@ error_code_t mosfet_switch_init(mosfet_switch_state_t* state, const mosfet_confi
     
     memset(state, 0, sizeof(mosfet_switch_state_t));
     
-    // Use provided config or defaults
+    // Store config in state struct (no global)
     if (config) {
-        g_default_config = *config;
+        state->gate_pin = config->gate_pin;
+        state->active_high = config->active_high;
+        state->settle_time_us = config->settle_time_us;
+        state->cooldown_time_ms = config->cooldown_time_ms;
+    } else {
+        // Use defaults
+        state->gate_pin = CONFIG_NTC_MOSFET_GATE_PIN;
+        state->active_high = CONFIG_NTC_MOSFET_ACTIVE_HIGH;
+        state->settle_time_us = MOSFET_SETTLE_TIME_US;
+        state->cooldown_time_ms = MOSFET_COOLDOWN_TIME_MS;
     }
     
-    state->gate_pin = g_default_config.gate_pin;
-    
     // Configure GPIO
-    pinMode(state->gate_pin, OUTPUT);
+    MOSFET_PIN_MODE(state->gate_pin, OUTPUT);
     
     // Start with MOSFET off (NTC unpowered)
-    digitalWrite(state->gate_pin, g_default_config.active_high ? LOW : HIGH);
+    MOSFET_DIGITAL_WRITE(state->gate_pin, state->active_high ? LOW : HIGH);
     state->is_on = false;
-    state->session_start_ms = millis();
+    state->session_start_ms = MOSFET_CLOCK_FUNC();
     
     state->initialized = true;
     
@@ -60,14 +78,14 @@ error_code_t mosfet_switch_turn_on(mosfet_switch_state_t* state) {
     }
     
     // Turn on MOSFET
-    digitalWrite(state->gate_pin, g_default_config.active_high ? HIGH : LOW);
+    MOSFET_DIGITAL_WRITE(state->gate_pin, state->active_high ? HIGH : LOW);
     state->is_on = true;
     
-    uint32_t current_time = millis();
+    uint32_t current_time = MOSFET_CLOCK_FUNC();
     state->last_on_time_ms = current_time;
     
     // Wait for settling time
-    delayMicroseconds(g_default_config.settle_time_us);
+    MOSFET_DELAY_US(state->settle_time_us);
     
     return ERR_OK;
 }
@@ -86,13 +104,13 @@ error_code_t mosfet_switch_turn_off(mosfet_switch_state_t* state) {
     }
     
     // Calculate on-time for duty cycle tracking
-    uint32_t current_time = millis();
+    uint32_t current_time = MOSFET_CLOCK_FUNC();
     uint32_t on_duration = current_time - state->last_on_time_ms;
     state->total_on_time_ms += on_duration;
     state->measurement_count++;
     
     // Turn off MOSFET
-    digitalWrite(state->gate_pin, g_default_config.active_high ? LOW : HIGH);
+    MOSFET_DIGITAL_WRITE(state->gate_pin, state->active_high ? LOW : HIGH);
     state->is_on = false;
     
     return ERR_OK;
@@ -103,10 +121,10 @@ bool mosfet_switch_is_ready(const mosfet_switch_state_t* state) {
         return false;
     }
     
-    uint32_t current_time = millis();
+    uint32_t current_time = MOSFET_CLOCK_FUNC();
     
     // Check if we're still in cooldown after last measurement
-    if (current_time - state->last_on_time_ms < g_default_config.cooldown_time_ms) {
+    if (current_time - state->last_on_time_ms < state->cooldown_time_ms) {
         return false;
     }
     
@@ -158,7 +176,7 @@ float mosfet_switch_get_duty_cycle(const mosfet_switch_state_t* state) {
         return 0.0f;
     }
     
-    uint32_t current_time = millis();
+    uint32_t current_time = MOSFET_CLOCK_FUNC();
     uint32_t session_duration = current_time - state->session_start_ms;
     
     if (session_duration == 0) {
@@ -177,11 +195,14 @@ void mosfet_switch_reset_duty_cycle(mosfet_switch_state_t* state) {
     
     state->total_on_time_ms = 0;
     state->measurement_count = 0;
-    state->session_start_ms = millis();
+    state->session_start_ms = MOSFET_CLOCK_FUNC();
 }
 
 void mosfet_switch_get_default_config(mosfet_config_t* config) {
     if (config) {
-        *config = g_default_config;
+        config->gate_pin = CONFIG_NTC_MOSFET_GATE_PIN;
+        config->active_high = CONFIG_NTC_MOSFET_ACTIVE_HIGH;
+        config->settle_time_us = MOSFET_SETTLE_TIME_US;
+        config->cooldown_time_ms = MOSFET_COOLDOWN_TIME_MS;
     }
 }
