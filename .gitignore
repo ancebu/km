@@ -1,31 +1,49 @@
-# PlatformIO build artifacts
-.piolibdeps/
-.platformio/
-.pio/
+```
+# ESP-IDF specific ignores
+/build/
+/cmake-build-*/
+/flasher_args.json
+/partitions.csv
+/bootloader/
+/esp-idf/
 
-# ESP-IDF specific
-build/
-.clangd/
-idf_component.yml
+# Build artifacts
+*.bin
+*.elf
+*.map
+*.out
+*.o
+*.a
+*.so
 
 # Dependencies
-lib/
+/components/
+/managed_components/
 
-# Logs and temp files
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
 *.log
-*.tmp
 
-# Environment
+# Temporary files
+*.tmp
+*~
+
+# Environment files
 .env
 .env.local
 *.env.*
 
-# Editors
-.vscode/
-.idea/
+# Coverage and test results
+/coverage/
+/htmlcov/
+/.coverage
 
-# OS generated files
+# OS specific
 .DS_Store
 Thumbs.db
-
-*.o
+```

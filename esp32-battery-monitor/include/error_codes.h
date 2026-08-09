@@ -30,8 +30,14 @@ typedef error_code_t err_t;
     } \
 } while(0)
 
+#ifdef ARDUINO_ARCH_ESP32
+#include <esp_log.h>
 #define LOG_ERROR(err, msg) do { \
     if (IS_ERROR(err)) { \
         ESP_LOGE("ERROR", "%s: %s", msg, error_code_to_string(err)); \
     } \
 } while(0)
+#else
+// Native builds: no-op to avoid ESP-IDF dependency
+#define LOG_ERROR(err, msg) ((void)(err))
+#endif

@@ -31,19 +31,6 @@ extern "C" {
 // ============================================================================
 
 /**
- * @brief Equilibrium detection state machine
- */
-typedef struct {
-    bool in_equilibrium;              // true if currently in equilibrium state
-    uint32_t equilibrium_start_ms;    // Timestamp when equilibrium was entered
-    uint32_t equilibrium_duration_ms; // Total time spent in current equilibrium
-    uint16_t stable_reading_count;    // Consecutive stable readings
-    float reference_temp_c;           // AHT20 temperature at equilibrium start
-    float equilibrium_temp_avg_c;     // Average temperature during equilibrium
-    uint32_t samples_collected;       // Number of calibration points collected in this session
-} equilibrium_state_t;
-
-/**
  * @brief Equilibrium detection configuration
  */
 typedef struct {
@@ -53,6 +40,23 @@ typedef struct {
     uint16_t stability_count;         // Required consecutive stable readings
     float min_equilibrium_duration_s; // Minimum duration to consider valid (seconds)
 } equilibrium_config_t;
+
+/**
+ * @brief Equilibrium detection state machine
+ */
+typedef struct {
+    equilibrium_config_t config;        // Configuration parameters
+    bool in_equilibrium;              // true if currently in equilibrium state
+    uint32_t equilibrium_start_ms;    // Timestamp when equilibrium was entered
+    uint32_t equilibrium_duration_ms; // Total time spent in current equilibrium
+    uint16_t stable_reading_count;    // Consecutive stable readings
+    float reference_temp_c;           // AHT20 temperature at equilibrium start
+    float equilibrium_temp_avg_c;     // Average temperature during equilibrium
+    uint32_t samples_collected;       // Number of calibration points collected in this session
+    // Dedicated derivative tracking fields (no more field abuse)
+    float last_dt_temp_reading;       // Previous AHT20 reading for dT/dt
+    uint32_t last_dt_time_ms;         // Timestamp of previous reading
+} equilibrium_state_t;
 
 /**
  * @brief Calibration data point harvested during equilibrium

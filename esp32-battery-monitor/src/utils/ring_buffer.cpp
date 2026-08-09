@@ -4,37 +4,50 @@
  */
 
 #include "types.h"
+#include <stdlib.h>
 #include <string.h>
 
-void ring_buffer_init(ring_buffer_t* buffer) {
-    if (buffer == NULL) {
-        return;
+error_code_t ring_buffer_init(ring_buffer_t* buffer, uint16_t capacity) {
+    if (buffer == NULL || capacity == 0) {
+        return ERR_INVALID_ARG;
     }
-    memset(buffer->data, 0, sizeof(buffer->data));
+    buffer->data = (battery_pack_state_t*)calloc(capacity, sizeof(battery_pack_state_t));
+    if (!buffer->data) {
+        return ERR_MEMORY_ALLOC;
+    }
+    buffer->capacity = capacity;
     buffer->head = 0;
     buffer->tail = 0;
     buffer->count = 0;
     buffer->full = false;
+    return ERR_OK;
+}
+
+void ring_buffer_destroy(ring_buffer_t* buffer) {
+    if (buffer && buffer->data) {
+        free(buffer->data);
+        buffer->data = NULL;
+    }
 }
 
 bool ring_buffer_push(ring_buffer_t* buffer, const battery_pack_state_t* data) {
-    if (buffer == NULL || data == NULL) {
+    if (buffer == NULL || data == NULL || buffer->data == NULL) {
         return false;
     }
     
     // If buffer is full, overwrite oldest entry (move tail forward)
     if (buffer->full) {
-        buffer->tail = (buffer->tail + 1) % CONFIG_RING_BUFFER_SIZE;
+        buffer->tail = (buffer->tail + 1) % buffer->capacity;
     }
     
     // Copy data to head position
     memcpy(&buffer->data[buffer->head], data, sizeof(battery_pack_state_t));
     
     // Advance head
-    buffer->head = (buffer->head + 1) % CONFIG_RING_BUFFER_SIZE;
+    buffer->head = (buffer->head + 1) % buffer->capacity;
     
     // Update count and full flag
-    if (buffer->count < CONFIG_RING_BUFFER_SIZE) {
+    if (buffer->count < buffer->capacity) {
         buffer->count++;
     }
     if (buffer->head == buffer->tail) {
@@ -45,7 +58,7 @@ bool ring_buffer_push(ring_buffer_t* buffer, const battery_pack_state_t* data) {
 }
 
 bool ring_buffer_pop(ring_buffer_t* buffer, battery_pack_state_t* data) {
-    if (buffer == NULL || data == NULL) {
+    if (buffer == NULL || data == NULL || buffer->data == NULL) {
         return false;
     }
     
@@ -58,7 +71,7 @@ bool ring_buffer_pop(ring_buffer_t* buffer, battery_pack_state_t* data) {
     memcpy(data, &buffer->data[buffer->tail], sizeof(battery_pack_state_t));
     
     // Advance tail
-    buffer->tail = (buffer->tail + 1) % CONFIG_RING_BUFFER_SIZE;
+    buffer->tail = (buffer->tail + 1) % buffer->capacity;
     
     // Update count and full flag
     buffer->count--;

@@ -10,9 +10,12 @@
 #define ABSOLUTE_ZERO_K 273.15f
 
 float thermistor_resistance_to_temp(float resistance_ohm,
-                                     const thermistor_calibration_t* calibration) {
+                                     const thermistor_calibration_t* calibration,
+                                     bool* valid_output) {
+    if (valid_output) *valid_output = false;
+
     if (calibration == NULL || resistance_ohm <= 0.0f) {
-        return -999.0f;
+        return NAN;
     }
 
     // Beta equation: T = B / (ln(R/Rnom) + B/Tnom)
@@ -22,8 +25,15 @@ float thermistor_resistance_to_temp(float resistance_ohm,
     float temp_k = calibration->beta / (ln_ratio + (calibration->beta / t_nominal_k));
     float temp_c = temp_k - ABSOLUTE_ZERO_K;
 
+    // Check for invalid results
+    if (!isfinite(temp_c)) {
+        return NAN;
+    }
+
     // Apply calibration corrections
-    return thermistor_apply_calibration(temp_c, calibration);
+    float result = thermistor_apply_calibration(temp_c, calibration);
+    if (valid_output) *valid_output = true;
+    return result;
 }
 
 float thermistor_temp_to_resistance(float temperature_c,

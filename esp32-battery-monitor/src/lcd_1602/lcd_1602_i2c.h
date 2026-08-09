@@ -12,6 +12,7 @@
 #include "config.h"
 #include <stdint.h>
 #include <stdbool.h>
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -24,6 +25,26 @@ extern "C" {
 #define LCD_1602_ALTERNATE_ADDRESS  0x3F    // Alternate I2C address
 #define LCD_1602_COLS               16      // Number of columns
 #define LCD_1602_ROWS               2       // Number of rows
+
+// ============================================================================
+// LCD HAL ABSTRACTION
+// ============================================================================
+
+/**
+ * @brief LCD HAL interface for testability
+ */
+typedef struct {
+    void (*begin)(int sda, int scl);
+    void (*begin_transmission)(uint8_t addr);
+    size_t (*write)(uint8_t data);
+    uint8_t (*end_transmission)(void);
+    void (*delay_ms)(uint32_t ms);
+    void (*delay_us)(uint32_t us);
+} lcd_hal_t;
+
+// Default HAL implementations
+extern const lcd_hal_t lcd_hal_arduino;
+extern const lcd_hal_t lcd_hal_native;
 
 // HD44780 command definitions
 #define LCD_CMD_CLEAR_DISPLAY       0x01
@@ -83,6 +104,7 @@ typedef struct {
     int8_t col;                   // Current cursor column
     int8_t row;                   // Current cursor row
     uint8_t custom_chars[LCD_CGRAM_SIZE]; // Custom character definitions
+    const lcd_hal_t* hal;         // HAL interface
 } lcd_1602_state_t;
 
 /**
@@ -102,9 +124,10 @@ typedef enum {
  * @brief Initialize LCD 1602 I2C display
  * @param state Pointer to driver state structure
  * @param address I2C address (use 0 for auto-detect)
+ * @param hal LCD HAL implementation (use NULL for default)
  * @return ERR_OK on success, error code otherwise
  */
-error_code_t lcd_1602_init(lcd_1602_state_t* state, uint8_t address);
+error_code_t lcd_1602_init(lcd_1602_state_t* state, uint8_t address, const lcd_hal_t* hal);
 
 /**
  * @brief Clear the display and return cursor to home position

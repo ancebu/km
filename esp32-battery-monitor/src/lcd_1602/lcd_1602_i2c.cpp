@@ -6,96 +6,142 @@
  */
 
 #include "lcd_1602_i2c.h"
+#include <string.h>
+#include <stdio.h>
+
+#ifdef ARDUINO_ARCH_ESP32
 #include <Arduino.h>
 #include <Wire.h>
+
+// Arduino HAL implementation
+static void arduino_wire_begin(int sda, int scl) { Wire.begin(sda, scl); }
+static void arduino_begin_transmission(uint8_t addr) { Wire.beginTransmission(addr); }
+static size_t arduino_write(uint8_t data) { return Wire.write(data); }
+static uint8_t arduino_end_transmission(void) { return Wire.endTransmission(); }
+static void arduino_delay_ms(uint32_t ms) { delay(ms); }
+static void arduino_delay_us(uint32_t us) { delayMicroseconds(us); }
+const lcd_hal_t lcd_hal_arduino = {
+    arduino_wire_begin,
+    arduino_begin_transmission,
+    arduino_write,
+    arduino_end_transmission,
+    arduino_delay_ms,
+    arduino_delay_us
+};
+#else
+// Native stubs
+static void noop_wire_begin(int sda, int scl) { (void)sda; (void)scl; }
+static void noop_begin_transmission(uint8_t addr) { (void)addr; }
+static size_t noop_write(uint8_t data) { (void)data; return 1; }
+static uint8_t noop_end_transmission(void) { return 0; }
+static void noop_delay_ms(uint32_t ms) { (void)ms; }
+static void noop_delay_us(uint32_t us) { (void)us; }
+const lcd_hal_t lcd_hal_native = {
+    noop_wire_begin,
+    noop_begin_transmission,
+    noop_write,
+    noop_end_transmission,
+    noop_delay_ms,
+    noop_delay_us
+};
+#endif
+
+// Default HAL accessor
+static const lcd_hal_t* get_default_lcd_hal(void) {
+#ifdef ARDUINO_ARCH_ESP32
+    return &lcd_hal_arduino;
+#else
+    return &lcd_hal_native;
+#endif
+}
 
 // ============================================================================
 // INTERNAL HELPER FUNCTIONS
 // ============================================================================
 
 /**
- * @brief Send a byte to the LCD (command or data)
+ * @brief Send a byte to the LCD (command or data) using HAL
  */
-static void lcd_1602_send_byte(uint8_t address, uint8_t byte, uint8_t mode) {
+static void lcd_1602_send_byte(const lcd_hal_t* hal, uint8_t address, uint8_t byte, uint8_t mode) {
     // Split byte into high and low nibbles for 4-bit mode
     uint8_t high_nibble = byte & 0xF0;
     uint8_t low_nibble = (byte << 4) & 0xF0;
     
     // Send high nibble
-    Wire.beginTransmission(address);
-    Wire.write(high_nibble | mode | LCD_BACKLIGHT);
-    Wire.write(high_nibble | mode | LCD_BACKLIGHT | LCD_EN);  // Enable high
-    delayMicroseconds(2);
-    Wire.write(high_nibble | mode | LCD_BACKLIGHT);           // Enable low
-    delayMicroseconds(2);
-    Wire.endTransmission();
+    hal->begin_transmission(address);
+    hal->write(high_nibble | mode | LCD_BACKLIGHT);
+    hal->write(high_nibble | mode | LCD_BACKLIGHT | LCD_EN);  // Enable high
+    hal->delay_us(2);
+    hal->write(high_nibble | mode | LCD_BACKLIGHT);           // Enable low
+    hal->delay_us(2);
+    hal->end_transmission();
     
     // Send low nibble
-    Wire.beginTransmission(address);
-    Wire.write(low_nibble | mode | LCD_BACKLIGHT);
-    Wire.write(low_nibble | mode | LCD_BACKLIGHT | LCD_EN);   // Enable high
-    delayMicroseconds(2);
-    Wire.write(low_nibble | mode | LCD_BACKLIGHT);            // Enable low
-    delayMicroseconds(2);
-    Wire.endTransmission();
+    hal->begin_transmission(address);
+    hal->write(low_nibble | mode | LCD_BACKLIGHT);
+    hal->write(low_nibble | mode | LCD_BACKLIGHT | LCD_EN);   // Enable high
+    hal->delay_us(2);
+    hal->write(low_nibble | mode | LCD_BACKLIGHT);            // Enable low
+    hal->delay_us(2);
+    hal->end_transmission();
     
-    delayMicroseconds(50);  // Wait for command to execute
+    hal->delay_us(50);  // Wait for command to execute
 }
 
 /**
  * @brief Send a command to the LCD
  */
-static void lcd_1602_send_command(uint8_t address, uint8_t cmd) {
-    lcd_1602_send_byte(address, cmd, 0);  // RS = 0 for command
+static void lcd_1602_send_command(const lcd_hal_t* hal, uint8_t address, uint8_t cmd) {
+    lcd_1602_send_byte(hal, address, cmd, 0);  // RS = 0 for command
 }
 
 /**
  * @brief Send data to the LCD
  */
-static void lcd_1602_send_data(uint8_t address, uint8_t data) {
-    lcd_1602_send_byte(address, data, LCD_RS);  // RS = 1 for data
+static void lcd_1602_send_data(const lcd_hal_t* hal, uint8_t address, uint8_t data) {
+    lcd_1602_send_byte(hal, address, data, LCD_RS);  // RS = 1 for data
 }
 
 /**
  * @brief Initialize LCD in 4-bit mode
  */
-static error_code_t lcd_1602_init_4bit(uint8_t address) {
-    delay(50);  // Wait for LCD to power up
+static error_code_t lcd_1602_init_4bit(const lcd_hal_t* hal, uint8_t address) {
+    hal->delay_ms(50);  // Wait for LCD to power up
     
     // Send function set multiple times to ensure 4-bit mode
     // First three times as 8-bit (only high nibble matters)
-    Wire.beginTransmission(address);
-    Wire.write(0x30 | LCD_BACKLIGHT);
-    Wire.write(0x30 | LCD_BACKLIGHT | LCD_EN);
-    delayMicroseconds(5);
-    Wire.write(0x30 | LCD_BACKLIGHT);
-    Wire.endTransmission();
-    delayMicroseconds(5);
+    hal->begin_transmission(address);
+    hal->write(0x30 | LCD_BACKLIGHT);
+    hal->write(0x30 | LCD_BACKLIGHT | LCD_EN);
+    hal->delay_us(5);
+    hal->write(0x30 | LCD_BACKLIGHT);
+    hal->end_transmission();
+    hal->delay_us(5);
     
-    Wire.beginTransmission(address);
-    Wire.write(0x30 | LCD_BACKLIGHT);
-    Wire.write(0x30 | LCD_BACKLIGHT | LCD_EN);
-    delayMicroseconds(5);
-    Wire.write(0x30 | LCD_BACKLIGHT);
-    Wire.endTransmission();
-    delayMicroseconds(5);
+    hal->begin_transmission(address);
+    hal->write(0x30 | LCD_BACKLIGHT);
+    hal->write(0x30 | LCD_BACKLIGHT | LCD_EN);
+    hal->delay_us(5);
+    hal->write(0x30 | LCD_BACKLIGHT);
+    hal->end_transmission();
+    hal->delay_us(5);
     
-    Wire.beginTransmission(address);
-    Wire.write(0x30 | LCD_BACKLIGHT);
-    Wire.write(0x30 | LCD_BACKLIGHT | LCD_EN);
-    delayMicroseconds(5);
-    Wire.write(0x30 | LCD_BACKLIGHT);
-    Wire.endTransmission();
-    delayMicroseconds(5);
+    hal->begin_transmission(address);
+    hal->write(0x30 | LCD_BACKLIGHT);
+    hal->write(0x30 | LCD_BACKLIGHT | LCD_EN);
+    hal->delay_us(5);
+    hal->write(0x30 | LCD_BACKLIGHT);
+    hal->end_transmission();
+    hal->delay_us(5);
     
     // Now set to 4-bit mode with 2 lines
-    Wire.beginTransmission(address);
-    Wire.write(0x20 | LCD_BACKLIGHT);
-    Wire.write(0x20 | LCD_BACKLIGHT | LCD_EN);
-    delayMicroseconds(5);
-    Wire.write(0x20 | LCD_BACKLIGHT);
-    Wire.endTransmission();
-    delayMicroseconds(5);
+    hal->begin_transmission(address);
+    hal->write(0x20 | LCD_BACKLIGHT);
+    hal->write(0x20 | LCD_BACKLIGHT | LCD_EN);
+    hal->delay_us(5);
+    hal->write(0x20 | LCD_BACKLIGHT);
+    hal->end_transmission();
+    hal->delay_us(5);
     
     return ERR_OK;
 }
@@ -104,10 +150,16 @@ static error_code_t lcd_1602_init_4bit(uint8_t address) {
 // PUBLIC API IMPLEMENTATION
 // ============================================================================
 
-error_code_t lcd_1602_init(lcd_1602_state_t* state, uint8_t address) {
+error_code_t lcd_1602_init(lcd_1602_state_t* state, uint8_t address, const lcd_hal_t* hal) {
     if (!state) {
         return ERR_INVALID_ARG;
     }
+    
+    // Use provided HAL or default
+    if (hal == NULL) {
+        hal = get_default_lcd_hal();
+    }
+    state->hal = hal;
     
     memset(state, 0, sizeof(lcd_1602_state_t));
     
@@ -123,37 +175,37 @@ error_code_t lcd_1602_init(lcd_1602_state_t* state, uint8_t address) {
     }
     
     // Initialize I2C if not already done
-    Wire.begin(CONFIG_I2C_SDA_PIN, CONFIG_I2C_SCL_PIN);
-    delay(10);
+    hal->begin(CONFIG_I2C_SDA_PIN, CONFIG_I2C_SCL_PIN);
+    hal->delay_ms(10);
     
     // Initialize LCD in 4-bit mode
-    error_code_t err = lcd_1602_init_4bit(address);
+    error_code_t err = lcd_1602_init_4bit(hal, address);
     if (err != ERR_OK) {
         return err;
     }
     
     // Set display function: 4-bit mode, 2 lines, 5x8 dots
     state->display_function = LCD_FUNCTION_4BIT | LCD_FUNCTION_2LINE | LCD_FUNCTION_5X8;
-    lcd_1602_send_command(address, LCD_CMD_FUNCTION_SET | state->display_function);
-    delayMicroseconds(50);
+    lcd_1602_send_command(hal, address, LCD_CMD_FUNCTION_SET | state->display_function);
+    hal->delay_us(50);
     
     // Set display control: display on, cursor off, blink off
     state->display_control = LCD_DISPLAY_ON | LCD_CURSOR_OFF | LCD_BLINK_OFF;
-    lcd_1602_send_command(address, LCD_CMD_DISPLAY_CONTROL | state->display_control);
-    delayMicroseconds(50);
+    lcd_1602_send_command(hal, address, LCD_CMD_DISPLAY_CONTROL | state->display_control);
+    hal->delay_us(50);
     
     // Set entry mode: increment, no shift
     state->display_mode = LCD_ENTRY_INCREMENT | LCD_ENTRY_SHIFT_OFF;
-    lcd_1602_send_command(address, LCD_CMD_ENTRY_MODE | state->display_mode);
-    delayMicroseconds(50);
+    lcd_1602_send_command(hal, address, LCD_CMD_ENTRY_MODE | state->display_mode);
+    hal->delay_us(50);
     
     // Clear display
-    lcd_1602_send_command(address, LCD_CMD_CLEAR_DISPLAY);
-    delayMicroseconds(2000);  // Clear takes longer
+    lcd_1602_send_command(hal, address, LCD_CMD_CLEAR_DISPLAY);
+    hal->delay_us(2000);  // Clear takes longer
     
     // Return home
-    lcd_1602_send_command(address, LCD_CMD_RETURN_HOME);
-    delayMicroseconds(2000);
+    lcd_1602_send_command(hal, address, LCD_CMD_RETURN_HOME);
+    hal->delay_us(2000);
     
     // Initialize state
     state->initialized = true;
@@ -169,8 +221,8 @@ error_code_t lcd_1602_clear(lcd_1602_state_t* state) {
         return ERR_NOT_INITIALIZED;
     }
     
-    lcd_1602_send_command(state->i2c_address, LCD_CMD_CLEAR_DISPLAY);
-    delayMicroseconds(2000);
+    lcd_1602_send_command(state->hal, state->i2c_address, LCD_CMD_CLEAR_DISPLAY);
+    state->hal->delay_us(2000);
     
     state->col = 0;
     state->row = 0;
@@ -201,8 +253,8 @@ error_code_t lcd_1602_set_cursor(lcd_1602_state_t* state, uint8_t col, uint8_t r
             break;
     }
     
-    lcd_1602_send_command(state->i2c_address, LCD_CMD_SET_DDRAM_ADDR | addr);
-    delayMicroseconds(50);
+    lcd_1602_send_command(state->hal, state->i2c_address, LCD_CMD_SET_DDRAM_ADDR | addr);
+    state->hal->delay_us(50);
     
     state->col = col;
     state->row = row;
@@ -221,8 +273,8 @@ error_code_t lcd_1602_display_enable(lcd_1602_state_t* state, bool enable) {
         state->display_control &= ~LCD_DISPLAY_ON;
     }
     
-    lcd_1602_send_command(state->i2c_address, LCD_CMD_DISPLAY_CONTROL | state->display_control);
-    delayMicroseconds(50);
+    lcd_1602_send_command(state->hal, state->i2c_address, LCD_CMD_DISPLAY_CONTROL | state->display_control);
+    state->hal->delay_us(50);
     
     return ERR_OK;
 }
@@ -238,8 +290,8 @@ error_code_t lcd_1602_cursor_enable(lcd_1602_state_t* state, bool enable) {
         state->display_control &= ~LCD_CURSOR_ON;
     }
     
-    lcd_1602_send_command(state->i2c_address, LCD_CMD_DISPLAY_CONTROL | state->display_control);
-    delayMicroseconds(50);
+    lcd_1602_send_command(state->hal, state->i2c_address, LCD_CMD_DISPLAY_CONTROL | state->display_control);
+    state->hal->delay_us(50);
     
     return ERR_OK;
 }
@@ -255,8 +307,8 @@ error_code_t lcd_1602_blink_enable(lcd_1602_state_t* state, bool enable) {
         state->display_control &= ~LCD_BLINK_ON;
     }
     
-    lcd_1602_send_command(state->i2c_address, LCD_CMD_DISPLAY_CONTROL | state->display_control);
-    delayMicroseconds(50);
+    lcd_1602_send_command(state->hal, state->i2c_address, LCD_CMD_DISPLAY_CONTROL | state->display_control);
+    state->hal->delay_us(50);
     
     return ERR_OK;
 }
@@ -280,7 +332,7 @@ error_code_t lcd_1602_print(lcd_1602_state_t* state, const char* str) {
     }
     
     while (*str) {
-        lcd_1602_send_data(state->i2c_address, (uint8_t)*str);
+        lcd_1602_send_data(state->hal, state->i2c_address, (uint8_t)*str);
         str++;
         
         // Update cursor position
@@ -367,12 +419,12 @@ error_code_t lcd_1602_create_char(lcd_1602_state_t* state, uint8_t slot, const u
     }
     
     // Set CGRAM address
-    lcd_1602_send_command(state->i2c_address, LCD_CMD_SET_CGRAM_ADDR | (slot << 3));
-    delayMicroseconds(50);
+    lcd_1602_send_command(state->hal, state->i2c_address, LCD_CMD_SET_CGRAM_ADDR | (slot << 3));
+    state->hal->delay_us(50);
     
     // Write 8 bytes of character data
     for (uint8_t i = 0; i < 8; i++) {
-        lcd_1602_send_data(state->i2c_address, bitmap[i]);
+        lcd_1602_send_data(state->hal, state->i2c_address, bitmap[i]);
     }
     
     // Store in state
@@ -389,8 +441,8 @@ error_code_t lcd_1602_scroll_left(lcd_1602_state_t* state) {
         return ERR_NOT_INITIALIZED;
     }
     
-    lcd_1602_send_command(state->i2c_address, 0x18);  // Shift left
-    delayMicroseconds(50);
+    lcd_1602_send_command(state->hal, state->i2c_address, 0x18);  // Shift left
+    state->hal->delay_us(50);
     
     return ERR_OK;
 }
@@ -400,8 +452,8 @@ error_code_t lcd_1602_scroll_right(lcd_1602_state_t* state) {
         return ERR_NOT_INITIALIZED;
     }
     
-    lcd_1602_send_command(state->i2c_address, 0x1C);  // Shift right
-    delayMicroseconds(50);
+    lcd_1602_send_command(state->hal, state->i2c_address, 0x1C);  // Shift right
+    state->hal->delay_us(50);
     
     return ERR_OK;
 }
@@ -413,8 +465,8 @@ error_code_t lcd_1602_stop_scroll(lcd_1602_state_t* state) {
     
     // Stop scrolling by setting entry mode to no-shift
     state->display_mode = LCD_ENTRY_INCREMENT | LCD_ENTRY_SHIFT_OFF;
-    lcd_1602_send_command(state->i2c_address, LCD_CMD_ENTRY_MODE | state->display_mode);
-    delayMicroseconds(50);
+    lcd_1602_send_command(state->hal, state->i2c_address, LCD_CMD_ENTRY_MODE | state->display_mode);
+    state->hal->delay_us(50);
     
     return ERR_OK;
 }
@@ -424,12 +476,15 @@ error_code_t lcd_1602_auto_detect_address(lcd_1602_state_t* state) {
         return ERR_INVALID_ARG;
     }
     
+    // Use HAL from state or default
+    const lcd_hal_t* hal = state->hal ? state->hal : get_default_lcd_hal();
+    
     // Try common I2C addresses for LCD modules
     uint8_t addresses[] = {LCD_1602_DEFAULT_ADDRESS, LCD_1602_ALTERNATE_ADDRESS};
     
     for (size_t i = 0; i < sizeof(addresses) / sizeof(addresses[0]); i++) {
-        Wire.beginTransmission(addresses[i]);
-        if (Wire.endTransmission() == 0) {
+        hal->begin_transmission(addresses[i]);
+        if (hal->end_transmission() == 0) {
             state->i2c_address = addresses[i];
             state->initialized = true;
             return ERR_OK;

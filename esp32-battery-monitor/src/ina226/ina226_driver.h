@@ -30,15 +30,15 @@ typedef struct {
  * @brief Initialize INA226 driver
  * @param driver Pointer to driver state
  * @param i2c_port I2C port number (0 or 1)
- * @param sda_pin SDA GPIO pin
- * @param scl_pin SCL GPIO pin
+ * @param sda_pin SDA GPIO pin (int for native compatibility)
+ * @param scl_pin SCL GPIO pin (int for native compatibility)
  * @param address INA226 I2C address
  * @return ERR_OK on success
  */
 error_code_t ina226_driver_init(ina226_driver_t* driver,
                                  int i2c_port,
-                                 gpio_num_t sda_pin,
-                                 gpio_num_t scl_pin,
+                                 int sda_pin,
+                                 int scl_pin,
                                  uint8_t address);
 
 /**

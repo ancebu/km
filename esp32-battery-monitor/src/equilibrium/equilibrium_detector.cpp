@@ -42,21 +42,14 @@ static float calculate_temp_spread(const float* temps, uint8_t num_sensors) {
     return max_temp - min_temp;
 }
 
-// Calculate dT/dt using state stored in equilibrium_state_t (no globals)
+// Calculate dT/dt using dedicated tracking fields (no more field abuse)
 static float calculate_dt_dmin(equilibrium_state_t* state, float current_temp_c, uint32_t current_time) {
     float dt_dmin = 0.0f;
     
-    // Use a static field within the state struct for tracking
-    // We'll use reference_temp_c and equilibrium_start_ms as temp storage for derivative calc
-    // when not in equilibrium. This is a bit of a hack but avoids globals.
-    // Better: add fields to the state struct for this purpose.
-    // For now, we store last_temp in reference_temp_c and last_time in equilibrium_start_ms
-    // when not actively tracking equilibrium.
-    
-    if (state->equilibrium_start_ms > 0) {
-        uint32_t delta_ms = current_time - state->equilibrium_start_ms;
+    if (state->last_dt_time_ms > 0) {
+        uint32_t delta_ms = current_time - state->last_dt_time_ms;
         if (delta_ms > 0) {
-            float delta_temp = current_temp_c - state->reference_temp_c;
+            float delta_temp = current_temp_c - state->last_dt_temp_reading;
             float delta_min = (float)delta_ms / 60000.0f;
             if (delta_min > 0.001f) {
                 dt_dmin = fabsf(delta_temp) / delta_min;
@@ -64,9 +57,9 @@ static float calculate_dt_dmin(equilibrium_state_t* state, float current_temp_c,
         }
     }
     
-    // Store for next calculation
-    state->reference_temp_c = current_temp_c;
-    state->equilibrium_start_ms = current_time;
+    // Store in dedicated fields — no more field abuse
+    state->last_dt_temp_reading = current_temp_c;
+    state->last_dt_time_ms = current_time;
     
     return dt_dmin;
 }
@@ -82,12 +75,18 @@ error_code_t equilibrium_init(equilibrium_state_t* state, const equilibrium_conf
     
     memset(state, 0, sizeof(equilibrium_state_t));
     
-    // Use provided config or defaults (config is copied by caller into state if needed)
-    // The s_default_config is read-only and used directly in equilibrium_check
+    // Store config in state struct (P05 requirement)
+    if (config) {
+        state->config = *config;
+    } else {
+        equilibrium_get_default_config(&state->config);
+    }
     
     state->in_equilibrium = false;
     state->stable_reading_count = 0;
     state->samples_collected = 0;
+    state->last_dt_time_ms = 0;  // Initialize derivative tracking
+    state->last_dt_temp_reading = 0.0f;
     
     return ERR_OK;
 }
@@ -104,18 +103,18 @@ bool equilibrium_check(equilibrium_state_t* state,
     uint32_t current_time = EQUILIBRIUM_CLOCK_FUNC();
     
     // Condition 1: Check current is below threshold (near-zero load)
-    bool current_ok = fabsf(current_a) < s_default_config.current_threshold_a;
+    bool current_ok = fabsf(current_a) < state->config.current_threshold_a;
     
     // Condition 2: Check temperature derivative (dT/dt < threshold)
     float dt_dmin = calculate_dt_dmin(state, aht20_temp_c, current_time);
-    bool dt_ok = dt_dmin < s_default_config.dt_threshold_c_per_min;
+    bool dt_ok = dt_dmin < state->config.dt_threshold_c_per_min;
     
     // Condition 3: Check temperature spread across all NTC sensors
     float spread = 0.0f;
     bool spread_ok = true;
     if (ntc_temps && num_ntc_sensors > 0) {
         spread = calculate_temp_spread(ntc_temps, num_ntc_sensors);
-        spread_ok = spread < s_default_config.spread_threshold_c;
+        spread_ok = spread < state->config.spread_threshold_c;
     }
     
     // All conditions must be met for equilibrium
@@ -125,7 +124,7 @@ bool equilibrium_check(equilibrium_state_t* state,
         state->stable_reading_count++;
         
         // Check if we've reached stability threshold
-        if (state->stable_reading_count >= s_default_config.stability_count) {
+        if (state->stable_reading_count >= state->config.stability_count) {
             if (!state->in_equilibrium) {
                 // Just entered equilibrium
                 state->in_equilibrium = true;
@@ -188,7 +187,7 @@ error_code_t equilibrium_harvest_point(equilibrium_state_t* state,
     
     // Validate minimum equilibrium duration
     uint32_t duration_s = state->equilibrium_duration_ms / 1000;
-    if (duration_s < s_default_config.min_equilibrium_duration_s) {
+    if (duration_s < state->config.min_equilibrium_duration_s) {
         return ERR_TIMEOUT;  // Not stable long enough
     }
     
