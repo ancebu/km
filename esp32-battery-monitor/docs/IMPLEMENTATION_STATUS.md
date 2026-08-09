@@ -2,20 +2,20 @@
 
 This document compares the repository implementation against the PDF specification "Beyond Steinhart-Hart: A Self-Calibrating Thermal Framework Using Dynamic Polynomial Extrapolation for Precise Battery Cell Monitoring".
 
-## ✅ Correctly Implemented Components
+## Correctly Implemented Components
 
 ### 1. Dual Mux Architecture
-- **Status**: ✅ Complete
+- **Status**: Complete
 - **Files**: `src/mux/mux_controller.h`, `src/mux/mux_controller.cpp`
 - **Details**: Two 8-channel muxes route sense wires directly to INA226 VBUS inputs, enabling 64-point temperature matrix monitoring.
 
 ### 2. INA226 Integration
-- **Status**: ✅ Complete  
+- **Status**: Complete  
 - **Files**: `src/ina226/ina226_driver.h`
 - **Details**: Current sensor driver with configurable averaging and shunt resistance.
 
 ### 3. MOSFET Self-Heating Mitigation (Hardware-Based)
-- **Status**: ✅ Complete
+- **Status**: Complete
 - **Files**: `src/mosfet_switch/mosfet_switch.h`, `src/mosfet_switch/mosfet_switch.cpp`
 - **PDF Spec**: "Self-heating is a systematic error source"
 - **Implementation**: Hardware gating of NTC power using MOSFET switch. Only energizes thermistor circuit during active measurement, eliminating self-heating drift entirely.
@@ -26,13 +26,13 @@ This document compares the repository implementation against the PDF specificati
   - Atomic measurement cycle API
 
 ### 4. AHT20 Reference Sensor Driver
-- **Status**: ✅ Complete
+- **Status**: Complete
 - **Files**: `src/aht20/aht20_driver.h`, `src/aht20/aht20_driver.cpp`
 - **PDF Spec**: "AHT20 specified to have ±0.3°C typical accuracy, used as ground truth"
 - **Implementation**: Full I2C driver with temperature/humidity reading, derivative calculation (dT/dt).
 
 ### 5. Thermal Equilibrium Detection
-- **Status**: ✅ Complete
+- **Status**: Complete
 - **Files**: `src/equilibrium/equilibrium_detector.h`, `src/equilibrium/equilibrium_detector.cpp`
 - **PDF Spec**: 
   - Load current < 200mA
@@ -42,7 +42,7 @@ This document compares the repository implementation against the PDF specificati
 - **Implementation**: State machine monitoring all three conditions simultaneously, confidence scoring based on stability duration.
 
 ### 6. Hoge 4th-Order Polynomial Extrapolation
-- **Status**: ✅ Complete
+- **Status**: Partial - not yet integrated in main.cpp
 - **Files**: `src/polynomial/hoge_polynomial.h`, `src/polynomial/hoge_polynomial.cpp`
 - **PDF Spec**: "1/T = A0 + A1*lnR + A2*(lnR)² + A3*(lnR)³ + A4*(lnR)⁴"
 - **Implementation**:
@@ -50,26 +50,28 @@ This document compares the repository implementation against the PDF specificati
   - Phantom anchors at -20°C and 100°C from datasheet Beta
   - Dynamic refit when crossing power-of-10 sample thresholds (10, 100, 1000...)
   - Gaussian elimination solver (runs in milliseconds on ESP32)
+- **Notes**: Stack overflow risk due to unbounded `all_samples[]` array; no bound check on `max_samples` in `hoge_polynomial_init`.
 
 ### 7. Look-Up Table with Interpolation
-- **Status**: ✅ Complete
+- **Status**: Partial - not yet integrated in main.cpp
 - **Files**: `src/lut/lut_calibration.h`, `src/lut/lut_calibration.cpp`
 - **PDF Spec**: "LUT-based interpolation achieves 0.01°C to 0.05°C precision"
 - **Implementation**:
   - 256 bins per NTC channel (configurable)
   - Running averages for resistance/temperature
-  - Linear interpolation between calibrated points
+  - Linear interpolation between calibrated points (not cubic spline as documented in header)
   - Serialization/deserialization for NVS storage
   - Merge capability for multi-session calibration
+- **Notes**: Header claims cubic spline interpolation but implementation uses linear interpolation. Precision claim untested.
 
 ### 8. Calibration Point Harvesting
-- **Status**: ✅ Complete
+- **Status**: Partial - framework exists but not wired up in main loop
 - **Files**: Integrated across equilibrium, LUT, and polynomial modules
 - **PDF Spec**: "Harvest thousands of (NTC Resistance, AHT20 Temperature) pairs during thermal equilibrium"
 - **Implementation**: Confidence-scored calibration points with timestamps, harvested only during verified equilibrium states.
 
 ### 9. Configuration System
-- **Status**: ✅ Complete
+- **Status**: Complete
 - **Files**: `include/config.h`
 - **New Settings Added**:
   ```c
@@ -81,16 +83,16 @@ This document compares the repository implementation against the PDF specificati
   #define CONFIG_NTC_MOSFET_GATE_PIN              GPIO_NUM_12
   ```
 
-## 📊 Precision Achieved
+## Precision Achieved
 
 | Metric | PDF Target | Implementation |
 |--------|-----------|----------------|
-| Relative Precision (ΔT) | 0.01°C - 0.05°C | ✅ Supported via LUT interpolation |
-| Absolute Accuracy | ±0.3°C (AHT20 limited) | ✅ Inherits AHT20 accuracy |
-| Long-Term Repeatability | < 0.1°C | ✅ Dynamic polynomial refitting |
-| Detection Threshold | ~0.05°C | ✅ Sub-millikelvin resolution possible |
+| Relative Precision (ΔT) | 0.01°C - 0.05°C | Untested - LUT with linear interpolation implemented but not validated |
+| Absolute Accuracy | ±0.3°C (AHT20 limited) | Inherits AHT20 accuracy |
+| Long-Term Repeatability | < 0.1°C | Dynamic polynomial refitting (untested) |
+| Detection Threshold | ~0.05°C | Sub-millikelvin resolution theoretically possible |
 
-## 🔧 Key Architectural Decisions
+## Key Architectural Decisions
 
 1. **Hybrid Model**: LUT for interpolation within calibrated range, Hoge polynomial for extrapolation outside bounds.
 
@@ -102,7 +104,7 @@ This document compares the repository implementation against the PDF specificati
 
 5. **Power-of-10 Refit Triggers**: Polynomial coefficients recalculated when sample count crosses 10, 100, 1000, etc., balancing computational load with statistical confidence.
 
-## 📁 New Module Structure
+## New Module Structure
 
 ```
 src/
@@ -124,7 +126,7 @@ src/
 └── ... (existing modules)
 ```
 
-## 🚀 Next Steps for Full Integration
+## Next Steps for Full Integration
 
 To complete the integration, update `src/main.cpp` to:
 
@@ -139,23 +141,23 @@ To complete the integration, update `src/main.cpp` to:
    - If not in equilibrium: use hybrid model (LUT if in range, polynomial if outside)
    - Use MOSFET switch for all NTC measurements
 
-## 📝 PDF Compliance Summary
+## PDF Compliance Summary
 
 | PDF Requirement | Status | Location |
 |----------------|--------|----------|
-| AHT20 integration | ✅ | `src/aht20/` |
-| Thermal equilibrium detection | ✅ | `src/equilibrium/` |
-| Current threshold < 200mA | ✅ | `equilibrium_detector.cpp:98` |
-| dT/dt < 0.05 °C/min | ✅ | `equilibrium_detector.cpp:103` |
-| Sensor spread < 0.1°C | ✅ | `equilibrium_detector.cpp:109` |
-| LUT with interpolation | ✅ | `src/lut/` |
-| 4th-order Hoge polynomial | ✅ | `src/polynomial/` |
-| Phantom anchors | ✅ | `hoge_polynomial.cpp:243` |
-| Power-of-10 refit triggers | ✅ | `hoge_polynomial.cpp:283` |
-| Confidence scoring | ✅ | `equilibrium_detector.cpp:198` |
-| Self-heating mitigation | ✅ | `src/mosfet_switch/` |
-| Hardware MOSFET gating | ✅ | User-requested feature |
-| Opportunistic calibration | ✅ | Architecture design |
-| Zero manual intervention | ✅ | Automatic equilibrium harvesting |
+| AHT20 integration | Complete | `src/aht20/` |
+| Thermal equilibrium detection | Complete | `src/equilibrium/` |
+| Current threshold < 200mA | Complete | `equilibrium_detector.cpp:98` |
+| dT/dt < 0.05 °C/min | Complete | `equilibrium_detector.cpp:103` |
+| Sensor spread < 0.1°C | Complete | `equilibrium_detector.cpp:109` |
+| LUT with interpolation | Partial - linear, not cubic spline | `src/lut/` |
+| 4th-order Hoge polynomial | Partial - not integrated in main.cpp | `src/polynomial/` |
+| Phantom anchors | Complete | `hoge_polynomial.cpp:243` |
+| Power-of-10 refit triggers | Complete | `hoge_polynomial.cpp:283` |
+| Confidence scoring | Complete | `equilibrium_detector.cpp:198` |
+| Self-heating mitigation | Complete | `src/mosfet_switch/` |
+| Hardware MOSFET gating | Complete | User-requested feature |
+| Opportunistic calibration | Partial - framework exists but not wired up | Architecture design |
+| Zero manual intervention | Not yet verified | Automatic equilibrium harvesting |
 
-**Overall Compliance**: 100% of core framework requirements implemented.
+**Overall Compliance**: Core framework components implemented but not yet integrated or tested in main application loop. See `TEST_FIX_PLAN.md` for outstanding issues.

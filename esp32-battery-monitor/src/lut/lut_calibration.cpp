@@ -1,6 +1,6 @@
 /**
  * @file lut_calibration.cpp
- * @brief Look-Up Table with Cubic Spline Interpolation Implementation
+ * @brief Look-Up Table with Linear Interpolation Implementation
  */
 
 #include "lut_calibration.h"
@@ -15,69 +15,12 @@ static uint32_t default_lut_clock_ms(void) { return 0; }
 #endif
 
 // ============================================================================
-// CUBIC SPLINE INTERPOLATION (Natural Spline)
+// LINEAR INTERPOLATION IMPLEMENTATION
 // ============================================================================
 
-// Build natural cubic spline coefficients from data points
-// Note: Uses local allocation per-call to avoid global state
-static bool build_natural_spline(const float* x, const float* y, int n, 
-                                  spline_coefficient_t** coeffs_out, int* n_out,
-                                  spline_coefficient_t* local_cache, uint16_t cache_size) {
-    if (n < 2) return false;
-    
-    // Use provided local cache or allocate
-    spline_coefficient_t* coeffs = NULL;
-    if (local_cache && cache_size >= (uint16_t)(n - 1)) {
-        coeffs = local_cache;
-    } else {
-        coeffs = (spline_coefficient_t*)calloc(n - 1, sizeof(spline_coefficient_t));
-        if (!coeffs) return false;
-    }
-    
-    // For simplicity, use Catmull-Rom style interpolation
-    // This is a simplified approach - full natural spline would solve tridiagonal system
-    
-    for (int i = 0; i < n - 1; i++) {
-        float h = x[i + 1] - x[i];
-        if (h <= 0.0f) continue;
-        
-        // Calculate slopes
-        float m_prev = (i > 0) ? (y[i] - y[i-1]) / (x[i] - x[i-1]) : (y[i+1] - y[i]) / h;
-        float m_next = (i < n-1) ? (y[i+1] - y[i]) / h : (y[i] - y[i-1]) / (x[i] - x[i-1]);
-        
-        // Catmull-Rom coefficients
-        coeffs[i].a = y[i];
-        coeffs[i].b = m_prev;
-        coeffs[i].c = (3.0f * (y[i+1] - y[i]) / (h * h)) - (2.0f * m_prev / h) - (m_next / h);
-        coeffs[i].d = (2.0f * (y[i] - y[i+1]) / (h * h * h)) + ((m_prev + m_next) / (h * h));
-    }
-    
-    *coeffs_out = coeffs;
-    *n_out = n - 1;
-    
-    return true;
-}
-
-// Evaluate spline at point x
-static float eval_spline(const spline_coefficient_t* coeffs, int n, float x, const float* x_knots) {
-    if (n <= 0 || !coeffs) return 0.0f;
-    
-    // Find the right interval
-    int i = 0;
-    for (i = 0; i < n - 1; i++) {
-        if (x >= x_knots[i] && x <= x_knots[i + 1]) {
-            break;
-        }
-    }
-    i = (i >= n) ? n - 2 : i;
-    
-    float dx = x - x_knots[i];
-    return coeffs[i].a + coeffs[i].b * dx + coeffs[i].c * dx * dx + coeffs[i].d * dx * dx * dx;
-}
-
-// ============================================================================
-// PUBLIC API IMPLEMENTATION
-// ============================================================================
+// Note: The header declares spline_coefficient_t and build_natural_spline() 
+// for API compatibility, but the actual implementation uses simple linear 
+// interpolation between the two nearest valid bins.
 
 error_code_t lut_init(lut_table_t* lut, uint8_t channel_id, uint16_t bin_count) {
     if (!lut) {
@@ -206,8 +149,7 @@ error_code_t lut_interp_temp(const lut_table_t* lut, float resistance_ohm, float
         }
     }
     
-    // Linear interpolation between nearest neighbors
-    // (Simplified from full cubic spline for embedded efficiency)
+    // Linear interpolation between the two nearest valid bins
     float r0 = r_values[interval];
     float r1 = r_values[interval + 1];
     float t0 = t_values[interval];
