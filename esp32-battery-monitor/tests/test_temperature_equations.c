@@ -280,9 +280,6 @@ TEST(test_poly_extrapolation_stability) {
     ASSERT_TRUE(err == ERR_OK);
     
     // Add samples in narrow range (20-30°C)
-    float r_20 = thermistor_temp_to_resistance(20.0f, &cal);
-    float r_30 = thermistor_temp_to_resistance(30.0f, &cal);
-    
     for (int i = 0; i < 10; i++) {
         float t = 20.0f + (i * 1.0f);
         float r = thermistor_temp_to_resistance(t, &cal);
@@ -476,7 +473,8 @@ TEST(test_refit_threshold_power_of_10) {
     thermistor_calibration_t cal;
     thermistor_get_default_calibration(&cal);
     
-    error_code_t err = hoge_polynomial_init(&state, 1000);
+    // Use max_samples within allowed limit (HOGE_REFIT_SAMPLE_THRESHOLD_POWER_OF_10 = 500)
+    error_code_t err = hoge_polynomial_init(&state, 200);
     ASSERT_TRUE(err == ERR_OK);
     
     // Add samples one by one and check refit triggers at power-of-10
