@@ -89,7 +89,7 @@ TEST(test_beta_at_nominal) {
     thermistor_get_default_calibration(&cal);
     
     // At nominal resistance (10kΩ), should return exactly nominal temp (25°C)
-    float temp = thermistor_resistance_to_temp(cal.r_nominal, &cal);
+    float temp = thermistor_resistance_to_temp(cal.r_nominal, &cal, NULL);
     
     ASSERT_EQ_FLOAT(25.0f, temp, 0.1f);
     PRINT_PASS();
@@ -103,7 +103,7 @@ TEST(test_beta_at_cold) {
     float r_at_minus_20 = thermistor_temp_to_resistance(-20.0f, &cal);
     
     // Now verify forward equation returns -20°C
-    float temp = thermistor_resistance_to_temp(r_at_minus_20, &cal);
+    float temp = thermistor_resistance_to_temp(r_at_minus_20, &cal, NULL);
     
     ASSERT_EQ_FLOAT(-20.0f, temp, 1.0f);
     PRINT_PASS();
@@ -117,7 +117,7 @@ TEST(test_beta_at_hot) {
     float r_at_80 = thermistor_temp_to_resistance(80.0f, &cal);
     
     // Verify forward equation returns ~80°C
-    float temp = thermistor_resistance_to_temp(r_at_80, &cal);
+    float temp = thermistor_resistance_to_temp(r_at_80, &cal, NULL);
     
     ASSERT_EQ_FLOAT(80.0f, temp, 1.0f);
     PRINT_PASS();
@@ -134,7 +134,7 @@ TEST(test_beta_inverse_consistency) {
     for (int i = 0; i < num_tests; i++) {
         float t_original = test_temps[i];
         float r = thermistor_temp_to_resistance(t_original, &cal);
-        float t_roundtrip = thermistor_resistance_to_temp(r, &cal);
+        float t_roundtrip = thermistor_resistance_to_temp(r, &cal, NULL);
         
         float error = fabsf(t_roundtrip - t_original);
         if (error > 0.01f) {
@@ -156,8 +156,8 @@ TEST(test_beta_ntc_behavior) {
     float r_low = 1000.0f;   // Low resistance
     float r_high = 100000.0f; // High resistance
     
-    float t_low = thermistor_resistance_to_temp(r_low, &cal);
-    float t_high = thermistor_resistance_to_temp(r_high, &cal);
+    float t_low = thermistor_resistance_to_temp(r_low, &cal, NULL);
+    float t_high = thermistor_resistance_to_temp(r_high, &cal, NULL);
     
     ASSERT_TRUE(t_low > t_high);  // Low R = Hot, High R = Cold
     PRINT_PASS();
@@ -437,7 +437,7 @@ TEST(test_chain_voltage_to_temp) {
     ASSERT_TRUE(r_therm > 0.0f);
     
     // Step 2: Resistance to temperature
-    float temp = thermistor_resistance_to_temp(r_therm, &cal);
+    float temp = thermistor_resistance_to_temp(r_therm, &cal, NULL);
     ASSERT_FINITE(temp);
     ASSERT_TRUE(temp > -40.0f && temp < 125.0f);  // Within valid range
     
@@ -454,7 +454,7 @@ TEST(test_chain_with_calibration) {
     
     // Get raw temperature at nominal
     float r_nom = cal.r_nominal;
-    float temp_raw = thermistor_resistance_to_temp(r_nom, &cal);
+    float temp_raw = thermistor_resistance_to_temp(r_nom, &cal, NULL);
     
     // The function applies calibration internally
     // At nominal (25°C raw), calibrated should be: (25.0 * 1.05) + 2.5 = 28.75°C
