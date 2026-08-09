@@ -1,0 +1,39 @@
+name: revert-gitignore
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - ".gitignore"
+
+permissions:
+  contents: write
+
+jobs:
+  revert:
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Restore .gitignore from base branch
+        run: |
+          git config user.name "gitignore-bot"
+          git config user.email "actions@users.noreply.github.com"
+
+          git fetch origin ${{ github.event.pull_request.base.ref }}
+
+          if git show origin/${{ github.event.pull_request.base.ref }}:.gitignore > /tmp/base_gitignore 2>/dev/null; then
+            cp /tmp/base_gitignore .gitignore
+          else
+            rm -f .gitignore
+          fi
+
+          if ! git diff --quiet -- .gitignore; then
+            git add -A -- .gitignore
+            git commit -m "chore: revert .gitignore to base branch"
+            git push
+          fi
