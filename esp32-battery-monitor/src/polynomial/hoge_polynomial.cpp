@@ -177,6 +177,31 @@ error_code_t hoge_polynomial_add_sample(poly_fit_state_t* state,
     return ERR_OK;
 }
 
+// Helper: accumulate a single sample into normal equations
+static void accumulate_sample(float XtWX[HOGE_NUM_COEFFICIENTS][HOGE_NUM_COEFFICIENTS],
+                              float XtWY[HOGE_NUM_COEFFICIENTS],
+                              const poly_calibration_sample_t* sample) {
+    float ln_r = sample->ln_resistance;
+    float inv_t = sample->inverse_temp_k;
+    float w = sample->weight;
+    
+    // Build powers of ln(R): [1, lnR, lnR^2, lnR^3, lnR^4]
+    float powers[HOGE_NUM_COEFFICIENTS];
+    powers[0] = 1.0f;
+    for (int i = 1; i < HOGE_NUM_COEFFICIENTS; i++) {
+        powers[i] = powers[i-1] * ln_r;
+    }
+    
+    // Accumulate X^T W X
+    for (int i = 0; i < HOGE_NUM_COEFFICIENTS; i++) {
+        for (int j = 0; j < HOGE_NUM_COEFFICIENTS; j++) {
+            XtWX[i][j] += w * powers[i] * powers[j];
+        }
+        // Accumulate X^T W Y
+        XtWY[i] += w * powers[i] * inv_t;
+    }
+}
+
 error_code_t hoge_polynomial_fit(poly_fit_state_t* state) {
     if (!state) {
         return ERR_INVALID_ARG;
@@ -200,42 +225,14 @@ error_code_t hoge_polynomial_fit(poly_fit_state_t* state) {
                                     &phantom_low,
                                     &phantom_high);
     
-    // Process all samples including phantom anchors
-    poly_calibration_sample_t all_samples[HOGE_REFIT_SAMPLE_THRESHOLD_POWER_OF_10 + 2];
-    uint32_t total_samples = state->sample_count;
-    
-    // Copy real samples
-    for (uint32_t i = 0; i < state->sample_count; i++) {
-        all_samples[i] = state->samples[i];
+    // Accumulate real samples directly from state->samples[] (no copy needed)
+    for (uint32_t s = 0; s < state->sample_count; s++) {
+        accumulate_sample(XtWX, XtWY, &state->samples[s]);
     }
     
-    // Add phantom anchors
-    all_samples[total_samples] = phantom_low;
-    all_samples[total_samples + 1] = phantom_high;
-    total_samples += 2;
-    
-    // Build normal equations
-    for (uint32_t s = 0; s < total_samples; s++) {
-        float ln_r = all_samples[s].ln_resistance;
-        float inv_t = all_samples[s].inverse_temp_k;
-        float w = all_samples[s].weight;
-        
-        // Build powers of ln(R): [1, lnR, lnR^2, lnR^3, lnR^4]
-        float powers[HOGE_NUM_COEFFICIENTS];
-        powers[0] = 1.0f;
-        for (int i = 1; i < HOGE_NUM_COEFFICIENTS; i++) {
-            powers[i] = powers[i-1] * ln_r;
-        }
-        
-        // Accumulate X^T W X
-        for (int i = 0; i < HOGE_NUM_COEFFICIENTS; i++) {
-            for (int j = 0; j < HOGE_NUM_COEFFICIENTS; j++) {
-                XtWX[i][j] += w * powers[i] * powers[j];
-            }
-            // Accumulate X^T W Y
-            XtWY[i] += w * powers[i] * inv_t;
-        }
-    }
+    // Accumulate phantom anchors
+    accumulate_sample(XtWX, XtWY, &phantom_low);
+    accumulate_sample(XtWX, XtWY, &phantom_high);
     
     // Solve linear system
     float coefficients[HOGE_NUM_COEFFICIENTS];

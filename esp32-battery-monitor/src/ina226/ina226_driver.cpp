@@ -70,9 +70,15 @@ static uint32_t default_ina226_clock_ms(void) { return 0; }
 #define INA226_BUS_LSB_mV       1.25f   // 1.25 mV per bit
 #define INA226_POWER_LSB_W      25.0f   // 25 µW per bit (when CAL = 40960 / I_LSB)
 
+// Delay macro - Arduino uses delay(), native is no-op
+#ifdef ARDUINO_ARCH_ESP32
+#define INA226_DELAY_MS(ms) delay(ms)
+#else
+#define INA226_DELAY_MS(ms) ((void)(ms))
+#endif
+
 // Arduino/Wire wrappers
 static inline void INA226_WIRE_BEGIN(int sda, int scl) { Wire.begin(sda, scl); }
-static inline void INA226_DELAY_MS(uint32_t ms) { delay(ms); }
 static inline uint32_t INA226_MILLIS() { return millis(); }
 
 static error_code_t ina226_write_register(uint8_t address, uint8_t reg, uint16_t value) {
@@ -113,7 +119,6 @@ typedef struct {
 static ina226_i2c_stub_t s_ina226_stub;
 
 static inline void INA226_WIRE_BEGIN(int sda, int scl) { (void)sda; (void)scl; }
-static inline void INA226_DELAY_MS(uint32_t ms) { (void)ms; }
 static inline uint32_t INA226_MILLIS() { return 0; }
 
 static error_code_t ina226_write_register(uint8_t address, uint8_t reg, uint16_t value) {
@@ -147,8 +152,8 @@ static error_code_t ina226_read_register(uint8_t address, uint8_t reg, uint16_t*
 
 error_code_t ina226_driver_init(ina226_driver_t* driver,
                                  int i2c_port,
-                                 gpio_num_t sda_pin,
-                                 gpio_num_t scl_pin,
+                                 int sda_pin,
+                                 int scl_pin,
                                  uint8_t address) {
     if (!driver) {
         return ERR_INVALID_ARG;
@@ -160,7 +165,11 @@ error_code_t ina226_driver_init(ina226_driver_t* driver,
     driver->initialized = false;
     
     // Initialize I2C if not already done
+#ifdef ARDUINO_ARCH_ESP32
+    INA226_WIRE_BEGIN((gpio_num_t)sda_pin, (gpio_num_t)scl_pin);
+#else
     INA226_WIRE_BEGIN(sda_pin, scl_pin);
+#endif
     INA226_DELAY_MS(10);
     
     // Reset INA226
@@ -400,7 +409,7 @@ error_code_t ina226_driver_reset(ina226_driver_t* driver) {
         return err;
     }
     
-    delay(1);  // Wait for reset
+    INA226_DELAY_MS(1);  // Wait for reset
     
     // Re-initialize with default configuration
     uint16_t config = INA226_MODE_SHUNT_BUS_CONT;

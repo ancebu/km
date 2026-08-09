@@ -31,11 +31,16 @@ static error_code_t initialize_system(void) {
 
     ESP_LOGI(TAG, "Initializing system...");
 
-    // Initialize data buffer
-    ring_buffer_init(&g_data_buffer);
+    // Initialize data buffer with heap allocation
+    err = ring_buffer_init(&g_data_buffer, CONFIG_RING_BUFFER_SIZE);
+    if (IS_ERROR(err)) {
+        ESP_LOGE(TAG, "Failed to initialize ring buffer: %s", 
+                 error_code_to_string(err));
+        return err;
+    }
 
     // Initialize multiplexer controller
-    err = mux_controller_init(&g_mux);
+    err = mux_controller_init(&g_mux, NULL);  // NULL = use default HAL
     if (IS_ERROR(err)) {
         ESP_LOGE(TAG, "Failed to initialize mux controller: %s", 
                  error_code_to_string(err));
@@ -88,7 +93,7 @@ static error_code_t initialize_system(void) {
     // Initialize LCD display (optional)
 #if CONFIG_LCD_ENABLED
     ESP_LOGI(TAG, "Initializing LCD display...");
-    err = lcd_1602_init(&g_lcd, 0);  // 0 = auto-detect address
+    err = lcd_1602_init(&g_lcd, 0, NULL);  // 0 = auto-detect address, NULL = default HAL
     if (IS_ERROR(err)) {
         ESP_LOGW(TAG, "LCD initialization failed: %s", error_code_to_string(err));
         ESP_LOGW(TAG, "Continuing without LCD display");
@@ -140,15 +145,16 @@ static void scan_thermistor_matrix(void) {
                 therm_cal.series_resistance
             );
 
-            // Convert to temperature
-            float temp = thermistor_resistance_to_temp(resistance, &therm_cal);
+            // Convert to temperature with validity check
+            bool temp_valid = false;
+            float temp = thermistor_resistance_to_temp(resistance, &therm_cal, &temp_valid);
 
             // Store in pack state
             g_pack_state.temps[sensor_idx].temperature_c = temp;
             g_pack_state.temps[sensor_idx].resistance_ohm = resistance;
             g_pack_state.temps[sensor_idx].mux_channel_a = row;
             g_pack_state.temps[sensor_idx].mux_channel_b = col;
-            g_pack_state.temps[sensor_idx].valid = thermistor_is_valid_temp(temp);
+            g_pack_state.temps[sensor_idx].valid = temp_valid && thermistor_is_valid_temp(temp);
             g_pack_state.temps[sensor_idx].timestamp_ms = millis();
 
             sensor_idx++;

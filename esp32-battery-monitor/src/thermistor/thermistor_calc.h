@@ -18,10 +18,12 @@ extern "C" {
  * @brief Calculate temperature from resistance using Beta equation
  * @param resistance_ohm Measured resistance in ohms
  * @param calibration Thermistor calibration data
- * @return Temperature in Celsius, or -999.0f on error
+ * @param valid_output Optional: set to true if result is valid, false on error
+ * @return Temperature in Celsius, or NAN on error
  */
 float thermistor_resistance_to_temp(float resistance_ohm,
-                                     const thermistor_calibration_t* calibration);
+                                     const thermistor_calibration_t* calibration,
+                                     bool* valid_output);
 
 /**
  * @brief Calculate resistance from temperature (inverse Beta equation)

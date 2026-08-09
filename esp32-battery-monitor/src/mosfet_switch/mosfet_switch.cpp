@@ -12,6 +12,16 @@
 static uint32_t default_mosfet_clock_ms(void) { return 0; }
 #endif
 
+#ifndef ARDUINO_ARCH_ESP32
+// Native builds: define LOW/HIGH if not already defined
+#ifndef LOW
+#define LOW  0
+#endif
+#ifndef HIGH
+#define HIGH 1
+#endif
+#endif
+
 #ifdef ARDUINO_ARCH_ESP32
 #include <Arduino.h>
 #define MOSFET_PIN_MODE(pin, mode) pinMode(pin, mode)

@@ -167,10 +167,11 @@ typedef struct {
 // ============================================================================
 
 typedef struct {
-    battery_pack_state_t data[CONFIG_RING_BUFFER_SIZE];
+    battery_pack_state_t* data;   // Heap-allocated array
     uint16_t head;          // Write index
     uint16_t tail;          // Read index
     uint16_t count;         // Number of items in buffer
+    uint16_t capacity;      // Actual allocated size
     bool full;              // true if buffer is full
 } ring_buffer_t;
 
@@ -179,7 +180,8 @@ extern "C" {
 #endif
 
 // Ring buffer operations
-void ring_buffer_init(ring_buffer_t* buffer);
+error_code_t ring_buffer_init(ring_buffer_t* buffer, uint16_t capacity);
+void ring_buffer_destroy(ring_buffer_t* buffer);
 bool ring_buffer_push(ring_buffer_t* buffer, const battery_pack_state_t* data);
 bool ring_buffer_pop(ring_buffer_t* buffer, battery_pack_state_t* data);
 uint16_t ring_buffer_count(const ring_buffer_t* buffer);

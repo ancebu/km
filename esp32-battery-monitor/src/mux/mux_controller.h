@@ -16,6 +16,19 @@ extern "C" {
 #endif
 
 /**
+ * @brief GPIO HAL abstraction for testability
+ */
+typedef struct {
+    void (*pin_mode)(uint8_t pin, uint8_t mode);
+    void (*digital_write)(uint8_t pin, uint8_t value);
+    void (*delay_ms)(uint32_t ms);
+} gpio_hal_t;
+
+// Default HAL implementations
+extern const gpio_hal_t gpio_hal_arduino;
+extern const gpio_hal_t gpio_hal_native;
+
+/**
  * @brief Mux controller state
  */
 typedef struct {
@@ -23,14 +36,16 @@ typedef struct {
     uint8_t current_channel_b;
     bool initialized;
     bool enabled;
+    const gpio_hal_t* hal;
 } mux_controller_t;
 
 /**
  * @brief Initialize the mux controller
  * @param controller Pointer to controller state
+ * @param hal GPIO HAL implementation (use NULL for default)
  * @return ERR_OK on success
  */
-error_code_t mux_controller_init(mux_controller_t* controller);
+error_code_t mux_controller_init(mux_controller_t* controller, const gpio_hal_t* hal);
 
 /**
  * @brief Set multiplexer channel selection
@@ -82,8 +97,9 @@ error_code_t mux_controller_scan_all(mux_controller_t* controller,
 
 /**
  * @brief Wait for mux settling after channel change
+ * @param controller Pointer to controller state
  */
-void mux_controller_wait_settling(void);
+void mux_controller_wait_settling(const mux_controller_t* controller);
 
 /**
  * @brief Deinitialize mux controller
